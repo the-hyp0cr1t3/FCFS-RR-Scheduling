@@ -3,6 +3,9 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include<string.h>
+#include <sys/types.h>
+#include<pthread.h>
 
 #define C2_TXT "c2.txt"
 #define C3_TXT "c3.txt"
