@@ -1,13 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#define C2_TXT "c2.txt"
-#define C3_TXT "c3.txt"
-#define N 1000000     // 1 million
+#include "OS_assn.h"
 
-void run_C1(int n) {
-    /* Find the sum of n random numbers and print it */
-
+long long run_C1(int n) {
+    /* Return the sum of n random numbers */
     /* Note:
         rand() returns a pseudo-random number in the range of 0 to RAND_MAX.
         RAND_MAX is a constant whose default value may vary between implementations
@@ -19,12 +13,11 @@ void run_C1(int n) {
     for(int i = 0; i < n; i++)
         sum += rand() % N + 1;
 
-    printf("sum = %lld\n", sum);
-    fflush(stdout);
+    return sum;
 }
 
-void run_C2(int n) {
-    /* Read n integers from c2.txt and print them */
+const char *run_C2(int n) {
+    /* Read n integers from c2.txt and return "Done printing" */
 
     FILE *c2f;
 
@@ -50,13 +43,11 @@ void run_C2(int n) {
     }
 
     fclose(c2f);
-
-    printf("Done Printing\n");
-    fflush(stdout);
+    return "Done printing";
 }
 
-void run_C3(int n) {
-    /* Read n integers from c3.txt and print the sum */
+long long run_C3(int n) {
+    /* Read n integers from c3.txt and return the sum */
 
     FILE *c3f;
 
@@ -81,14 +72,5 @@ void run_C3(int n) {
     }
 
     fclose(c3f);
-
-    printf("sum = %lld\n", sum);
-    fflush(stdout);
-}
-
-int main() {
-    srand(time(NULL));
-    run_C1(1000);
-    run_C2(3);
-    run_C3(10);
+    return sum;
 }
