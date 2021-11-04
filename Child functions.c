@@ -6,10 +6,15 @@
 #define N 1000000     // 1 million
 
 void run_C1(int n) {
-    // rand() returns a pseudo-random number in the range of 0 to RAND_MAX.
-    // RAND_MAX is a constant whose default value may vary between implementations
-    // but it is granted to be at least 32767.
-        // TODO: possible issue with problem constraints? numbers have to be [1, 10^6].
+    /* Find the sum of n random numbers and print it */
+
+    /* Note:
+        rand() returns a pseudo-random number in the range of 0 to RAND_MAX.
+        RAND_MAX is a constant whose default value may vary between implementations
+        but it is granted to be at least 32767.
+            TODO: possible issue with problem constraints? numbers have to be [1, 10^6].
+    */
+
     long long sum = 0;
     for(int i = 0; i < n; i++)
         sum += rand() % N;
@@ -19,6 +24,8 @@ void run_C1(int n) {
 }
 
 void run_C2(int n) {
+    /* Read n integers from c2.txt and print them */
+
     FILE *c2f;
 
     // File not found
@@ -28,7 +35,7 @@ void run_C2(int n) {
     }
 
     int x, cnt = 0;
-    for(; fscanf(c2f, "%d", &x) && cnt++ < n; ) {
+    while(fscanf(c2f, "%d", &x) && cnt++ < n) {
         printf("%d\n", x);
         fflush(stdout);
 
@@ -49,6 +56,8 @@ void run_C2(int n) {
 }
 
 void run_C3(int n) {
+    /* Read n integers from c3.txt and print the sum */
+
     FILE *c3f;
 
     // File not found
@@ -59,7 +68,7 @@ void run_C3(int n) {
 
     long long sum = 0;
     int x, cnt = 0;
-    for(; fscanf(c3f, "%d", &x) && cnt++ < n; ) {
+    while(fscanf(c3f, "%d", &x) && cnt++ < n) {
         sum += x;
         if(feof(c3f)) break;
     }
