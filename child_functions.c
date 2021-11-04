@@ -17,7 +17,7 @@ void run_C1(int n) {
 
     long long sum = 0;
     for(int i = 0; i < n; i++)
-        sum += rand() % N;
+        sum += rand() % N + 1;
 
     printf("sum = %lld\n", sum);
     fflush(stdout);
@@ -88,7 +88,7 @@ void run_C3(int n) {
 
 int main() {
     srand(time(NULL));
-    run_C1(N);
+    run_C1(1000);
     run_C2(3);
     run_C3(10);
 }
