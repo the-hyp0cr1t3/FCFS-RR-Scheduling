@@ -33,7 +33,7 @@ char *attach_memory_block(char *filename, int size) {
 
     // map the shared block into this process's memory
     // and give a pointer to it
-    result = shmget(shared_block_id, NULL, 0);
+    result = shmat(shared_block_id, NULL, 0);
     if (result == (char *)IPC_RESULT_ERROR) {
         return NULL;
     }
