@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
                     exit(EXIT_FAILURE);
                 }
 
-                memcpy(current_running_block, (char *)(-1), sizeof(int));
+                memcpy(current_running_block, (char *)(-1), sizeof(int)); // This might be a bug; Pls fix
 
                 // Schedule!
 

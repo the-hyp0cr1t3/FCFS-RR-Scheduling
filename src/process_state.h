@@ -7,8 +7,8 @@
 typedef struct process_state {
     int id;
     bool done;
-    int current_running_proc;
-    char* shm_block;
+    int current_running_proc;  // Current Running proccess, determined by the scheduling algorithm and copied from the shared memory block
+    char* shm_block;           // Shared Memory Block returned by shmget
     pthread_cond_t cond;
     pthread_mutex_t lock;
 } process_state;

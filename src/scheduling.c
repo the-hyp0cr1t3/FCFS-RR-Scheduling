@@ -28,7 +28,9 @@ void *worker(void *args) {
         // sleep(1);
     }
 
+
     // Write to the SHM_DONE to inform that the process is over.
+    state->done = true;
 }
 
 void child_method(int process_id) {
