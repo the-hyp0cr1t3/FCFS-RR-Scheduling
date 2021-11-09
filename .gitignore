@@ -1,7 +1,7 @@
-*
-!*.*
-!*/
+a
+a.out
 *:tests
 c2.txt
 c3.txt
 tess*
+!tess6.c
