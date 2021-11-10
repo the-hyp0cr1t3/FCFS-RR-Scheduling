@@ -39,9 +39,9 @@ void *monitor(void *args) {
 void *worker(void *args) {
     process_state *state = (process_state *)args;
 
-    // Use pthread_cond_wait and pthread_cond_signal
 
     while (1) {
+        sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
         printf("Child %d\n", state->id);
         sleep(1);
