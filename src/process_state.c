@@ -1,16 +1,25 @@
 #include "process_state.h"
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "shared_memory.h"
 
-void process_state_init(process_state* state, int process_id, char* shm_filename, int shm_size) {
-    state = malloc(sizeof(process_state));  // Initialized on the heap, to ensure that can be shared between threads.
+process_state* process_state_init(int process_id, char* shm_filename, int shm_size, sem_t* cpu_lock) {
+    process_state* state = malloc(sizeof(process_state));  // Initialized on the heap, to ensure that can be shared between threads.
     state->id = process_id;
     state->done = false;
     state->current_running_proc = -1;
+    state->cpu_lock = cpu_lock;
+
+    snprintf(state->sem_turn_fname, 16, "/turn_%d", state->id);
+
+    printf("LOG [%d]: sem_turn_fname = %s\n", state->id, state->sem_turn_fname);
+
+    sem_unlink(state->sem_turn_fname);
+    state->turn_lock = sem_open(state->sem_turn_fname, O_CREAT, 0644, 0);
 
     // Initialize Shared Memory Block
     state->shm_block = attach_memory_block(shm_filename, shm_size);
@@ -19,29 +28,13 @@ void process_state_init(process_state* state, int process_id, char* shm_filename
         exit(EXIT_FAILURE);
     }
 
-    if (pthread_cond_init(&state->cond, NULL) != 0) {
-        perror("ERROR: pthread_cond_init failed");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pthread_mutex_init(&state->lock, NULL) != 0) {
-        perror("ERROR: pthread_mutex_init failed");
-        exit(EXIT_FAILURE);
-    }
+    return state;
 }
 
 void process_state_destroy(process_state* state) {
-    if (pthread_mutex_destroy(&state->lock) != 0) {
-        perror("ERROR: pthread_mutex_destroy failed");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pthread_cond_destroy(&state->cond) != 0) {
-        perror("ERROR: pthread_cond_destroy failed");
-        exit(EXIT_FAILURE);
-    }
-
     detach_memory_block(state->shm_block);
+
+    sem_unlink(state->sem_turn_fname);
 
     free(state);
     state = NULL;
