@@ -2,7 +2,7 @@
 #define SCHEDULING
 #include <semaphore.h>
 
-#define SHM_CURRENT_RUNNING_FNAME "current_running.shm"
+#define SHM_CURRENT_SCHEDULED_FNAME "current_scheduled.shm"
 #define SHM_DONE_FNAME "done.shm"
 
 void *monitor(void *args);

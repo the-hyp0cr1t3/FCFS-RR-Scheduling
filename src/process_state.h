@@ -6,16 +6,14 @@
 #include <stdbool.h>
 
 typedef struct process_state {
-    int id;
-    bool done;
-    int current_running_proc;  // Current Running proccess, determined by the scheduling algorithm and copied from the shared memory block
-    char* shm_block;           // Shared Memory Block returned by shmget
-    char sem_turn_fname[16];
-    sem_t* cpu_lock;
-    sem_t* turn_lock;
+    int id;                      /** < Process ID*/
+    bool done;                   /** < Done status of the task. */
+    int current_scheduled;       /** < Current Scheduled proccess, determined by the scheduling algorithm and copied from the shared memory block */
+    char* shm_current_scheduled; /** < Shared Memory Block returned by shmget */
+    char sem_turn_fname[16];     /** < Name to use for the named semaphore, turn */
+    sem_t* cpu_lock;             /** < Semaphore to protect the CPU (as a sparse resource) */
+    sem_t* turn_lock;            /** < Semaphore to determine if it is this process's turn */
 } process_state;
-
-void unlink_semaphores();
 
 process_state* process_state_init(int process_id, char* shm_filename, int shm_size, sem_t* cpu_lock);
 void process_state_destroy(process_state* state);

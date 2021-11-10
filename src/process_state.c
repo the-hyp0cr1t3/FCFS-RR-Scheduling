@@ -8,22 +8,19 @@
 #include "shared_memory.h"
 
 process_state* process_state_init(int process_id, char* shm_filename, int shm_size, sem_t* cpu_lock) {
-    process_state* state = malloc(sizeof(process_state));  // Initialized on the heap, to ensure that can be shared between threads.
+    process_state* state = malloc(sizeof(process_state));  /* Initialized on the heap, to ensure that can be shared between threads. */
     state->id = process_id;
     state->done = false;
-    state->current_running_proc = -1;
+    state->current_scheduled = -1;
     state->cpu_lock = cpu_lock;
-
     snprintf(state->sem_turn_fname, 16, "/turn_%d", state->id);
-
-    printf("LOG [%d]: sem_turn_fname = %s\n", state->id, state->sem_turn_fname);
 
     sem_unlink(state->sem_turn_fname);
     state->turn_lock = sem_open(state->sem_turn_fname, O_CREAT, 0644, 0);
 
-    // Initialize Shared Memory Block
-    state->shm_block = attach_memory_block(shm_filename, shm_size);
-    if (state->shm_block == NULL) {
+    /* Initialize Shared Memory Block */
+    state->shm_current_scheduled = attach_memory_block(shm_filename, shm_size);
+    if (state->shm_current_scheduled == NULL) {
         fprintf(stderr, "ERROR: Could not get block: %s\n", shm_filename);
         exit(EXIT_FAILURE);
     }
@@ -32,7 +29,7 @@ process_state* process_state_init(int process_id, char* shm_filename, int shm_si
 }
 
 void process_state_destroy(process_state* state) {
-    detach_memory_block(state->shm_block);
+    detach_memory_block(state->shm_current_scheduled);
 
     sem_unlink(state->sem_turn_fname);
 
