@@ -85,12 +85,12 @@ void *monitor(void *args) {
 void *worker(void *args) {
     process_state *state = (process_state *)args;
 
-    while (1) {
+    for (int iters = 0; iters < 6 * (state->id + 1); iters++) {
         sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
 
         //  Critical Section Starts
-        printf("Child %d\n", state->id);
+        printf("%d: Child %d\n", iters, state->id);
         sleep(1);
         // Critical Section Ends
 
@@ -99,6 +99,9 @@ void *worker(void *args) {
 
     // Write to the SHM_DONE to inform that the process is over.
     state->done = true;
+    *state->shm_done = true;
+
+
 }
 
 /**
@@ -106,7 +109,7 @@ void *worker(void *args) {
  */
 void child_method(int process_id, sem_t *cpu_lock) {  // Move cpu_lock to be a process local variable?
     /* Initialized on the heap, to ensure that can be shared between threads. */
-    process_state *state = process_state_init(process_id, SHM_CURRENT_SCHEDULED_FNAME, BLOCK_SIZE, cpu_lock);
+    process_state *state = process_state_init(process_id, SHM_CURRENT_SCHEDULED_FNAME, SHM_DONE[process_id], BLOCK_SIZE, cpu_lock);
 
     pthread_t m_id, w_id; /* Monitor and Worker Thread IDs */
 
@@ -119,7 +122,20 @@ void child_method(int process_id, sem_t *cpu_lock) {  // Move cpu_lock to be a p
     process_state_destroy(state);
 }
 
-void rr_scheduler(char *shm_current_scheduled_block) {
+void rr_scheduler(char *shm_current_scheduled_block, int time_quantum) {
+    while (true) {
+        int cur = *shm_current_scheduled_block, add;
+
+        for(add = 1; add <= 3; add++)
+            if(!*shm_done[(cur + add) % 3]) break;
+
+        if(add > 3) break;
+
+        *shm_current_scheduled_block = (cur + add) % 3;
+        // printf("LOG [M]: shm_current_scheduled_block = %d\n", *shm_current_scheduled_block);
+
+        sleep(time_quantum);  // sleep for time quantum
+    }
 }
 
 void fcfs_scheduler(char *shm_current_scheduled_block) {

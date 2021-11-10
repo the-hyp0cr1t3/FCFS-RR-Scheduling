@@ -15,6 +15,7 @@
 
 int main(int argc, char *argv[]) {
     // Create a shared memory block
+    int time_quantum = 5;
 
     sem_unlink(SEM_CPU_FNAME);
     sem_t *cpu_lock = sem_open(SEM_CPU_FNAME, O_CREAT, 0644, 1);
@@ -53,16 +54,25 @@ int main(int argc, char *argv[]) {
 
                 *shm_current_scheduled_block = -1;
 
+
+                char *shm_done[3];
+
+                for(int i = 0; i < 3; i++) {
+                    shm_done[i] = attach_memory_block(SHM_DONE[i], BLOCK_SIZE);
+                    if (shm_done[i] == NULL) {
+                        fprintf(stderr, "ERROR: Could not get block: %s\n", SHM_DONE[i]);
+                        exit(EXIT_FAILURE);
+                    }
+                    *shm_done[i] = false;
+                }
+
+
                 // Good Times :')
 
-                // while (1) {
-                //     *shm_current_scheduled_block = (*shm_current_scheduled_block + 1) % 3;
-                //     printf("LOG [M]: shm_current_scheduled_block = %d\n", *shm_current_scheduled_block);
-                //     sleep(5);  // sleep for time quantum
-                // }
+
 
                 if (strcmp(argv[2], "rr") == 0) {
-                    rr_scheduler(shm_current_scheduled_block);
+                    rr_scheduler(shm_current_scheduled_block, time_quantum);
                 } else {
                     fcfs_scheduler(shm_current_scheduled_block);
                 }
@@ -79,6 +89,16 @@ int main(int argc, char *argv[]) {
                     printf("Destroyed Block: %s\n", SHM_CURRENT_SCHEDULED_FNAME);
                 } else {
                     fprintf(stderr, "ERROR: Could not destroy block: %s\n", SHM_CURRENT_SCHEDULED_FNAME);
+                }
+
+                for(int i = 0; i < 3; i++) {
+                    detach_memory_block(shm_done[i]);
+
+                    if (destroy_memory_block(SHM_DONE[i])) {
+                        printf("Destroyed Block: %s\n", SHM_DONE[i]);
+                    } else {
+                        fprintf(stderr, "ERROR: Could not destroy block: %s\n", SHM_DONE[i]);
+                    }
                 }
             }
         }

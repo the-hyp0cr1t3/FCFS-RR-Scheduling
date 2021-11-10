@@ -3,7 +3,9 @@
 #include <semaphore.h>
 
 #define SHM_CURRENT_SCHEDULED_FNAME "current_scheduled.shm"
-#define SHM_DONE_FNAME "done.shm"
+// #define SHM_DONE_FNAME "done.shm"
+
+static char* SHM_DONE[] = { "done0.shm", "done1.shm", "done2.shm" };
 
 void *monitor(void *args);
 void *worker(void *args);

@@ -14,7 +14,7 @@ pthread_cond_t cv;
 
 
 void *worker_thread_func(void *args) {
-    int i = 1, n = 3;
+    int i = 1, n = 8;
     while(!done) {
         while(!allowed);
 
@@ -91,6 +91,7 @@ void *monitor_thread_func(void *args) {
             exit(EXIT_FAILURE);
         }
 
+        sleep(2);
     }
 
     pthread_join(worker_id, NULL);
