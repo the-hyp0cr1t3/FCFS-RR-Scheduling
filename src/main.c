@@ -42,19 +42,29 @@ int main(int argc, char *argv[]) {
             } else {
                 //  Parent Process -- M
 
+                printf("Process PIDS\nM:\t%d\nC1:\t%d\nC2:\t%d\nC3:\t%d\n", getpid(), child[0], child[1], child[2]);
+
                 // Grab the shared memory block
-                char *current_running_block = attach_memory_block(SHM_CURRENT_RUNNING_FNAME, BLOCK_SIZE);
-                if (current_running_block == NULL) {
-                    fprintf(stderr, "ERROR: Could not get block: %s\n", SHM_CURRENT_RUNNING_FNAME);
+                char *shm_current_scheduled_block = attach_memory_block(SHM_CURRENT_SCHEDULED_FNAME, BLOCK_SIZE);
+                if (shm_current_scheduled_block == NULL) {
+                    fprintf(stderr, "ERROR: Could not get block: %s\n", SHM_CURRENT_SCHEDULED_FNAME);
                     exit(EXIT_FAILURE);
                 }
 
-                *current_running_block = -1;
+                *shm_current_scheduled_block = -1;
 
-                while (1) {
-                    *current_running_block = (*current_running_block + 1) % 3;
-                    printf("LOG [M]: current_running_block = %d\n", *current_running_block);
-                    sleep(5);
+                // Good Times :')
+
+                // while (1) {
+                //     *shm_current_scheduled_block = (*shm_current_scheduled_block + 1) % 3;
+                //     printf("LOG [M]: shm_current_scheduled_block = %d\n", *shm_current_scheduled_block);
+                //     sleep(5);  // sleep for time quantum
+                // }
+
+                if (strcmp(argv[2], "rr") == 0) {
+                    rr_scheduler(shm_current_scheduled_block);
+                } else {
+                    fcfs_scheduler(shm_current_scheduled_block);
                 }
 
                 // Schedule!
@@ -63,12 +73,12 @@ int main(int argc, char *argv[]) {
                 wait(NULL);
                 wait(NULL);
 
-                detach_memory_block(current_running_block);
+                detach_memory_block(shm_current_scheduled_block);
 
-                if (destroy_memory_block(SHM_CURRENT_RUNNING_FNAME)) {
-                    printf("Destroyed Block: %s\n", SHM_CURRENT_RUNNING_FNAME);
+                if (destroy_memory_block(SHM_CURRENT_SCHEDULED_FNAME)) {
+                    printf("Destroyed Block: %s\n", SHM_CURRENT_SCHEDULED_FNAME);
                 } else {
-                    fprintf(stderr, "ERROR: Could not destroy block: %s\n", SHM_CURRENT_RUNNING_FNAME);
+                    fprintf(stderr, "ERROR: Could not destroy block: %s\n", SHM_CURRENT_SCHEDULED_FNAME);
                 }
             }
         }

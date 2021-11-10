@@ -88,8 +88,12 @@ void *worker(void *args) {
     while (1) {
         sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
+
+        //  Critical Section Starts
         printf("Child %d\n", state->id);
         sleep(1);
+        // Critical Section Ends
+
         sem_post(state->cpu_lock);
     }
 
@@ -113,4 +117,10 @@ void child_method(int process_id, sem_t *cpu_lock) {  // Move cpu_lock to be a p
     pthread_join(m_id, NULL);
 
     process_state_destroy(state);
+}
+
+void rr_scheduler(char *shm_current_scheduled_block) {
+}
+
+void fcfs_scheduler(char *shm_current_scheduled_block) {
 }
