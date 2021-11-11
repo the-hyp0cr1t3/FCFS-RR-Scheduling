@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
 #include "process_state.h"
 #include "scheduling.h"
 #include "shared_memory.h"
