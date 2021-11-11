@@ -5,4 +5,7 @@ c2.txt
 c3.txt
 tess*
 !tess6.c
+
+.DS_Store
 *.o
+*.shm

@@ -1,5 +1,5 @@
 #ifndef PROCESS_STATE
-#define PROCESS_STAE
+#define PROCESS_STATE
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -16,7 +16,7 @@ typedef struct process_state {
     sem_t* turn_lock;            /** < Semaphore to determine if it is this process's turn */
 } process_state;
 
-process_state* process_state_init(int process_id, char* shm_filename, char* shm_done_filename, int shm_size, sem_t* cpu_lock);
+process_state* process_state_init(int process_id, sem_t* cpu_lock);
 void process_state_destroy(process_state* state);
 
 #endif
