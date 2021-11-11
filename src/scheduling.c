@@ -141,6 +141,8 @@ void rr_scheduler(char *shm_current_scheduled_block, int time_quantum,char *shm_
 void fcfs_scheduler(char *shm_current_scheduled_block,char *shm_done[]) {
         for(int i=0;i<3;i++){
             *shm_current_scheduled_block=i;
-            //sleep(large time)
+            while(!(*shm_done[i])){
+                usleep(2000); //check every 2ms if the process is completed or not
+            }
         }
 }
