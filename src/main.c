@@ -85,8 +85,6 @@ int main(int argc, char* argv[]) {
                     fcfs_scheduler(shm_current_scheduled_block, shm_done);
                 }
 
-                // Schedule!
-
                 wait(NULL);
                 wait(NULL);
                 wait(NULL);

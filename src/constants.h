@@ -8,5 +8,4 @@
 static char *SHM_DONE[] = {"done_0.shm", "done_1.shm", "done_2.shm"};
 
 #define STATS_FNAME "stats.csv"
-
 #endif
