@@ -11,7 +11,7 @@ void *monitor(void *args);
 void *worker(void *args);
 void child_method(int process_id, sem_t *cpu_lock);
 
-void rr_scheduler(char *shm_current_scheduled_block);
-void fcfs_scheduler(char *shm_current_scheduled_block);
+void rr_scheduler(char *shm_current_scheduled_block,int time_quantum,char *shm_done[]);
+void fcfs_scheduler(char *shm_current_scheduled_block,char *shm_done[]);
 
 #endif
