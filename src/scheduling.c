@@ -6,11 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "constants.h"
 #include "process_state.h"
 #include "shared_memory.h"
+#include "utils.h"
 
 /**
  * Created ONLY to be used as a thread routine. 
@@ -84,24 +86,53 @@ void *monitor(void *args) {
 
 void *worker(void *args) {
     process_state *state = (process_state *)args;
+    process_return *rtv = process_return_init(state->id);
+    rtv->n = 100 * (state->id + 1);
 
-    for (int iters = 0; iters < 6 * (state->id + 1); iters++) {
+    printf("[%d] Started Execution at: ", state->id);
+
+    struct timespec st, et;
+
+    for (int iters = 0; iters < rtv->n; iters++) {
+        // Start a new waiting segment
+        if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
+        }
+
         sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
 
+        // The wait is over!
+        if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
+        }
+
+        // Calculate the amount waited for this segment
+        rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
+
         //  Critical Section Starts
         printf("%d: Child %d\n", iters, state->id);
-        sleep(1);
+        usleep((int)5e4);  // sleep for 0.5 seconds
         // Critical Section Ends
 
         sem_post(state->cpu_lock);
     }
 
+    if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
+        fprintf(stderr, "ERROR: call to timespec_get failed \n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Calculate the turn around time
+    rtv->tat = get_time_diff(rtv->start_time, et);
+
     // Write to the SHM_DONE to inform that the process is over.
     state->done = true;
     *state->shm_done = true;
 
-    // return state;
+    return rtv;
 }
 
 /**
@@ -110,16 +141,33 @@ void *worker(void *args) {
 void child_method(int process_id, sem_t *cpu_lock) {  // Move cpu_lock to be a process local variable?
     /* Initialized on the heap, to ensure that can be shared between threads. */
     process_state *state = process_state_init(process_id, cpu_lock);
+    process_return *rtv;
 
     pthread_t m_id, w_id; /* Monitor and Worker Thread IDs */
 
     pthread_create(&m_id, NULL, monitor, (void *)state);
     pthread_create(&w_id, NULL, worker, (void *)state);
 
-    pthread_join(w_id, NULL);
+    pthread_join(w_id, (void **)&rtv);
     pthread_join(m_id, NULL);
 
     process_state_destroy(state);
+
+    char buff[100];
+    strftime(buff, sizeof buff, "%D %T", gmtime(&rtv->start_time.tv_sec));
+
+    double wt = 0;
+    for (int i = 0; i < rtv->wait_segments; ++i) {
+        wt += rtv->wts[i];
+    }
+
+    printf("PROCESS: %d\n", rtv->id);
+    printf("Start Time: %s.%09ld UTC\n", buff, rtv->start_time.tv_nsec);
+    printf("Number of wait segments: %d\n", rtv->wait_segments);
+    printf("Total Waiting Time for this Process: %09lf\n", wt);
+    printf("Turn-Around Time: %09lf\n", rtv->tat);
+
+    serialize_process_return(rtv, STATS_FNAME);
 }
 
 void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[], int time_quantum) {
