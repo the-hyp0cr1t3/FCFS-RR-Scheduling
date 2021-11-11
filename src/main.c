@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
                     *shm_done[i] = false;
                 }
 
-                // Schedule!
+                // Good Times :')
                 if (strcmp(argv[1], "rr") == 0) {
                     int time_quantum = (argc == 3) ? atoi(argv[2]) : 5;
                     rr_scheduler(shm_current_scheduled_block, shm_done, time_quantum);

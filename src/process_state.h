@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdbool.h>
+#include <time.h>
 
 typedef struct process_state {
     int id;                      /** < Process ID */
@@ -16,7 +17,21 @@ typedef struct process_state {
     sem_t* turn_lock;            /** < Semaphore to determine if it is this process's turn */
 } process_state;
 
+typedef struct process_return {
+    int id;
+    int n;
+    struct timespec start_time;
+    int wait_segments;
+    double* wts;  // waiting time segments
+    double tat;   // turn around time
+} process_return;
+
 process_state* process_state_init(int process_id, sem_t* cpu_lock);
 void process_state_destroy(process_state* state);
+
+process_return* process_return_init(int process_id);
+void process_return_destroy(process_return* rtv);
+
+void serialize_process_return(process_return* rtv, char* filename);
 
 #endif
