@@ -49,7 +49,6 @@ void process_state_destroy(process_state* state) {
     state = NULL;
 }
 
-
 process_return* process_return_init(int process_id) {
     process_return* rtv = malloc(sizeof(process_return));
 

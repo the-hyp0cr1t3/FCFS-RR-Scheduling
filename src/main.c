@@ -88,8 +88,7 @@ int main(int argc, char* argv[]) {
                 close(fd3[READ]);  //writing sum to pipe
                 write(fd3[WRITE], s, sizeof(long long int));
                 close(fd3[WRITE]);
-            }
-            else {
+            } else {
                 //  Parent Process -- M
 
                 // Basic Logs of the Process IDs
@@ -124,7 +123,7 @@ int main(int argc, char* argv[]) {
 
                 // Schedule!
                 if (strcmp(argv[1], "rr") == 0) {
-                    int time_quantum = (argc == 3) ? atoi(argv[2]) : 500000;
+                    int time_quantum = (argc == 3) ? atoi(argv[2]) : (int)5e5;
                     rr_scheduler(shm_current_scheduled_block, shm_done, time_quantum);
                 } else {
                     fcfs_scheduler(shm_current_scheduled_block, shm_done);

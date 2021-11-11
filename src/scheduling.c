@@ -111,7 +111,7 @@ void *worker0(void *args) {
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
         //  Critical Section Starts
-        printf("Running Child %d\n", state->id);
+        // printf("Running Child %d\n", state->id);
         sum += rand() % NUM + 1;
         // Critical Section Ends
 
@@ -134,7 +134,7 @@ void *worker0(void *args) {
 }
 void *worker1(void *args) {
     process_state *state = (process_state *)args;
-       process_return *rtv = process_return_init(state->id);
+    process_return *rtv = process_return_init(state->id);
     rtv->n = state->n;
 
     //printf("[%d] Started Execution at: ", state->id);
@@ -165,7 +165,7 @@ void *worker1(void *args) {
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
         //  Critical Section Starts
-        printf("Running Child %d\n", state->id);
+        // printf("Running Child %d\n", state->id);
         printf("%d\n", x);
         fflush(stdout);
         // Critical Section Ends
@@ -193,7 +193,7 @@ void *worker1(void *args) {
 
 void *worker2(void *args) {
     process_state *state = (process_state *)args;
-       process_return *rtv = process_return_init(state->id);
+    process_return *rtv = process_return_init(state->id);
     rtv->n = state->n;
 
     //printf("[%d] Started Execution at: ", state->id);
@@ -225,7 +225,7 @@ void *worker2(void *args) {
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
         //  Critical Section Starts
-        printf("Running Child %d\n", state->id);
+        // printf("Running Child %d\n", state->id);
         sum += x;
         // Critical Section Ends
         sem_post(state->cpu_lock);
@@ -271,8 +271,6 @@ long long int child_method(int process_id, sem_t *cpu_lock, int num) {  // Move 
     pthread_join(w_id, (void **)&rtv);
     pthread_join(m_id, NULL);
 
-    process_state_destroy(state);
-
     char buff[100];
     strftime(buff, sizeof buff, "%D %T", gmtime(&rtv->start_time.tv_sec));
 
@@ -282,10 +280,10 @@ long long int child_method(int process_id, sem_t *cpu_lock, int num) {  // Move 
     }
 
     printf("PROCESS: %d\n", rtv->id);
-    printf("Start Time: %s.%09ld UTC\n", buff, rtv->start_time.tv_nsec);
-    printf("Number of wait segments: %d\n", rtv->wait_segments);
-    printf("Total Waiting Time for this Process: %09lf\n", wt);
-    printf("Turn-Around Time: %09lf\n", rtv->tat);
+    printf("[%d] Start Time: %s.%09ld UTC\n", rtv->id, buff, rtv->start_time.tv_nsec);
+    printf("[%d] Number of wait segments: %d\n", rtv->id, rtv->wait_segments);
+    printf("[%d] Total Waiting Time for this Process: %09lf\n", rtv->id, wt);
+    printf("[%d] Turn-Around Time: %09lf\n", rtv->id, rtv->tat);
 
     serialize_process_return(rtv, STATS_FNAME);
 
