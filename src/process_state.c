@@ -48,3 +48,30 @@ void process_state_destroy(process_state* state) {
     free(state);
     state = NULL;
 }
+
+
+process_return* process_return_init(int process_id) {
+    process_return* rtv = malloc(sizeof(process_return));
+
+    rtv->id = process_id;
+    timespec_get(&rtv->start_time, TIME_UTC);
+    rtv->wait_segments = 0;
+    rtv->wts = malloc((int)2e6 * sizeof(double));
+
+    return rtv;
+}
+
+void serialize_process_return(process_return* rtv, char* filename) {
+    double wt = 0;
+    for (int i = 0; i < rtv->wait_segments; ++i) {
+        wt += rtv->wts[i];
+    }
+
+    FILE* file = fopen(filename, "a");
+    // process_id, n, start time, wait_iterations, total waiting time, turn around time
+    fprintf(file,
+            "%d,%d,%ld.%09ld,%d,%09lf,%09lf\n",
+            rtv->id, rtv->n, rtv->start_time.tv_sec, rtv->start_time.tv_nsec, rtv->wait_segments, wt, rtv->tat);
+
+    fclose(file);
+}

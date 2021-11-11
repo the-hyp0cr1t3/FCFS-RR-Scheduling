@@ -13,6 +13,8 @@
 #define C2_TXT "c2.txt"
 #define C3_TXT "c3.txt"
 
+#define STATS_FNAME "stats.csv"
+
 static char *SHM_DONE[] = {"done_0.shm", "done_1.shm", "done_2.shm"};
 
 #endif

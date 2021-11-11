@@ -12,3 +12,7 @@ void check_file(char* filename) {
 
     fclose(file);
 }
+
+double get_time_diff(struct timespec st, struct timespec et) {
+    return (double)(et.tv_sec - st.tv_sec) + ((double)(et.tv_nsec - st.tv_nsec) / 1000000000L);
+}

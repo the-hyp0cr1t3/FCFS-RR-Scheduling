@@ -6,11 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "constants.h"
 #include "process_state.h"
 #include "shared_memory.h"
+#include "utils.h"
 
 /**
  * Created ONLY to be used as a thread routine. 
@@ -81,86 +83,172 @@ void *monitor(void *args) {
  * @param args: process state declared on the heap. Used for inter thread communitcation on the same process.
  * @return state: return the final state of the process. Probably useless but what do I know.   
 */
-
-void *worker(void *args) {
+void *worker0(void *args) {
     process_state *state = (process_state *)args;
-    if (state->id == 0) {
-        long long int sum = 0;
-        for (int iters = 0; iters < state->n; iters++) {
-            sem_wait(state->turn_lock);
-            sem_wait(state->cpu_lock);
 
-            //  Critical Section Starts
-            printf("Running Child %d\n", state->id);
-            sum += rand() % NUM + 1;
-            // Critical Section Ends
+    process_return *rtv = process_return_init(state->id);
+    rtv->n = state->n;
 
-            sem_post(state->cpu_lock);
+    //printf("[%d] Started Execution at: ", state->id);
+
+    struct timespec st, et;
+    long long int sum = 0;
+    for (int iters = 0; iters < state->n; iters++) {
+        if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
+        }
+        sem_wait(state->turn_lock);
+        sem_wait(state->cpu_lock);
+
+        // The wait is over!
+        if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
         }
 
-        // Write to the SHM_DONE to inform that the process is over.
-        state->done = true;
-        state->result = sum;
-        *state->shm_done = true;
-    } else if (state->id == 1) {
-        FILE *c2f;
-        if (!(c2f = fopen(C2_TXT, "r"))) {
-            perror(C2_TXT);
-            exit(1);
-        }
-        int x, cnt = 0;
-        while (fscanf(c2f, "%d", &x) && cnt++ < state->n) {
-            sem_wait(state->turn_lock);
-            sem_wait(state->cpu_lock);
+        // Calculate the amount waited for this segment
+        rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
-            //  Critical Section Starts
-            printf("Running Child %d\n", state->id);
-            printf("%d\n", x);
-            fflush(stdout);
-            // Critical Section Ends
-            sem_post(state->cpu_lock);
-            if (feof(c2f)) break;
-        }
-        if (cnt < state->n) {
-            // Prints the numbers in the file even if cnt < n. Is it an issue?
-            fprintf(stderr, "%s: Expected %d, found %d integers.\n", C2_TXT, state->n, cnt);
-            exit(2);
-        }
-        // Write to the SHM_DONE to inform that the process is over.
-        fclose(c2f);
-        state->done = true;
-        *state->shm_done = true;
+        //  Critical Section Starts
+        printf("Running Child %d\n", state->id);
+        sum += rand() % NUM + 1;
+        // Critical Section Ends
 
-    } else {
-        FILE *c3f;
-        if (!(c3f = fopen(C3_TXT, "r"))) {
-            perror(C2_TXT);
-            exit(1);
-        }
-        int x, cnt = 0;
-        long long int sum = 0;
-        while (fscanf(c3f, "%d", &x) && cnt++ < state->n) {
-            sem_wait(state->turn_lock);
-            sem_wait(state->cpu_lock);
-
-            //  Critical Section Starts
-            printf("Running Child %d\n", state->id);
-            sum += x;
-            // Critical Section Ends
-            sem_post(state->cpu_lock);
-            if (feof(c3f)) break;
-        }
-        if (cnt < state->n) {
-            // Prints the numbers in the file even if cnt < n. Is it an issue?
-            fprintf(stderr, "%s: Expected %d, found %d integers.\n", C3_TXT, state->n, cnt);
-            exit(2);
-        }
-        // Write to the SHM_DONE to inform that the process is over.
-        fclose(c3f);
-        state->done = true;
-        state->result = sum;
-        *state->shm_done = true;
+        sem_post(state->cpu_lock);
     }
+    if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
+        fprintf(stderr, "ERROR: call to timespec_get failed \n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Calculate the turn around time
+    rtv->tat = get_time_diff(rtv->start_time, et);
+
+    // Write to the SHM_DONE to inform that the process is over.
+    state->done = true;
+    state->result = sum;
+    *state->shm_done = true;
+
+    return rtv;
+}
+void *worker1(void *args) {
+    process_state *state = (process_state *)args;
+       process_return *rtv = process_return_init(state->id);
+    rtv->n = state->n;
+
+    //printf("[%d] Started Execution at: ", state->id);
+
+    struct timespec st, et;
+
+    FILE *c2f;
+    if (!(c2f = fopen(C2_TXT, "r"))) {
+        perror(C2_TXT);
+        exit(1);
+    }
+    int x, cnt = 0;
+    while (fscanf(c2f, "%d", &x) && cnt++ < state->n) {
+        if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
+        }
+        sem_wait(state->turn_lock);
+        sem_wait(state->cpu_lock);
+
+        // The wait is over!
+        if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
+        }
+
+        // Calculate the amount waited for this segment
+        rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
+
+        //  Critical Section Starts
+        printf("Running Child %d\n", state->id);
+        printf("%d\n", x);
+        fflush(stdout);
+        // Critical Section Ends
+        sem_post(state->cpu_lock);
+        if (feof(c2f)) break;
+    }
+    if (cnt < state->n) {
+        // Prints the numbers in the file even if cnt < n. Is it an issue?
+        fprintf(stderr, "%s: Expected %d, found %d integers.\n", C2_TXT, state->n, cnt);
+        exit(2);
+    }
+    // Write to the SHM_DONE to inform that the process is over.
+    fclose(c2f);
+    if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
+        fprintf(stderr, "ERROR: call to timespec_get failed \n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Calculate the turn around time
+    rtv->tat = get_time_diff(rtv->start_time, et);
+    state->done = true;
+    *state->shm_done = true;
+    return rtv;
+}
+
+void *worker2(void *args) {
+    process_state *state = (process_state *)args;
+       process_return *rtv = process_return_init(state->id);
+    rtv->n = state->n;
+
+    //printf("[%d] Started Execution at: ", state->id);
+
+    struct timespec st, et;
+
+    FILE *c3f;
+    if (!(c3f = fopen(C3_TXT, "r"))) {
+        perror(C2_TXT);
+        exit(1);
+    }
+    int x, cnt = 0;
+    long long int sum = 0;
+    while (fscanf(c3f, "%d", &x) && cnt++ < state->n) {
+        if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
+        }
+        sem_wait(state->turn_lock);
+        sem_wait(state->cpu_lock);
+
+        // The wait is over!
+        if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
+        }
+
+        // Calculate the amount waited for this segment
+        rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
+
+        //  Critical Section Starts
+        printf("Running Child %d\n", state->id);
+        sum += x;
+        // Critical Section Ends
+        sem_post(state->cpu_lock);
+        if (feof(c3f)) break;
+    }
+    if (cnt < state->n) {
+        // Prints the numbers in the file even if cnt < n. Is it an issue?
+        fprintf(stderr, "%s: Expected %d, found %d integers.\n", C3_TXT, state->n, cnt);
+        exit(2);
+    }
+    // Write to the SHM_DONE to inform that the process is over.
+    fclose(c3f);
+    if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
+        fprintf(stderr, "ERROR: call to timespec_get failed \n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Calculate the turn around time
+    rtv->tat = get_time_diff(rtv->start_time, et);
+    state->done = true;
+    state->result = sum;
+    *state->shm_done = true;
+    return rtv;
 }
 
 /**
@@ -169,14 +257,37 @@ void *worker(void *args) {
 long long int child_method(int process_id, sem_t *cpu_lock, int num) {  // Move cpu_lock to be a process local variable?
     /* Initialized on the heap, to ensure that can be shared between threads. */
     process_state *state = process_state_init(process_id, cpu_lock, num);
+    process_return *rtv;
 
     pthread_t m_id, w_id; /* Monitor and Worker Thread IDs */
-
     pthread_create(&m_id, NULL, monitor, (void *)state);
-    pthread_create(&w_id, NULL, worker, (void *)state);
+    if (process_id == 0)
+        pthread_create(&w_id, NULL, worker0, (void *)state);
+    else if (process_id == 1)
+        pthread_create(&w_id, NULL, worker1, (void *)state);
+    else
+        pthread_create(&w_id, NULL, worker2, (void *)state);
 
-    pthread_join(w_id, NULL);
+    pthread_join(w_id, (void **)&rtv);
     pthread_join(m_id, NULL);
+
+    process_state_destroy(state);
+
+    char buff[100];
+    strftime(buff, sizeof buff, "%D %T", gmtime(&rtv->start_time.tv_sec));
+
+    double wt = 0;
+    for (int i = 0; i < rtv->wait_segments; ++i) {
+        wt += rtv->wts[i];
+    }
+
+    printf("PROCESS: %d\n", rtv->id);
+    printf("Start Time: %s.%09ld UTC\n", buff, rtv->start_time.tv_nsec);
+    printf("Number of wait segments: %d\n", rtv->wait_segments);
+    printf("Total Waiting Time for this Process: %09lf\n", wt);
+    printf("Turn-Around Time: %09lf\n", rtv->tat);
+
+    serialize_process_return(rtv, STATS_FNAME);
 
     long long int res = state->result;
 
