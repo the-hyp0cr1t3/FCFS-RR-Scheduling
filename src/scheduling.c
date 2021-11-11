@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <signal.h>
+
+#include "constants.h"
 #include "process_state.h"
 #include "shared_memory.h"
 
@@ -100,7 +101,7 @@ void *worker(void *args) {
     state->done = true;
     *state->shm_done = true;
 
-
+    // return state;
 }
 
 /**
@@ -108,7 +109,7 @@ void *worker(void *args) {
  */
 void child_method(int process_id, sem_t *cpu_lock) {  // Move cpu_lock to be a process local variable?
     /* Initialized on the heap, to ensure that can be shared between threads. */
-    process_state *state = process_state_init(process_id, SHM_CURRENT_SCHEDULED_FNAME, SHM_DONE[process_id], BLOCK_SIZE, cpu_lock);
+    process_state *state = process_state_init(process_id, cpu_lock);
 
     pthread_t m_id, w_id; /* Monitor and Worker Thread IDs */
 
@@ -121,28 +122,34 @@ void child_method(int process_id, sem_t *cpu_lock) {  // Move cpu_lock to be a p
     process_state_destroy(state);
 }
 
-void rr_scheduler(char *shm_current_scheduled_block, int time_quantum,char *shm_done[]) {
+void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[], int time_quantum) {
     while (true) {
-        int cur = *shm_current_scheduled_block, add;
+        int current_scheduled = *shm_current_scheduled_block;
+        int new_schedule_offset = 0;
 
-        for(add = 1; add <= 3; add++){
-            if(!*shm_done[(cur + add) % 3]) break;
+        for (new_schedule_offset = 1; new_schedule_offset <= 3; new_schedule_offset++) {
+            if (*shm_done[(current_scheduled + new_schedule_offset) % 3] == 0) break;
         }
 
-        if(add > 3) break;
+        // If the loop reaches the end, without breaking it means that all tasks have finished successfully,
+        // and the done shared memory block of each process has 1 in it. Congratulations!
+        if (new_schedule_offset > 3) break;
 
-        *shm_current_scheduled_block = (cur + add) % 3;
+        // Once a process to be scheduled has been found, schedule it by writing to the shared memory block
+        *shm_current_scheduled_block = (current_scheduled + new_schedule_offset) % 3;
         // printf("LOG [M]: shm_current_scheduled_block = %d\n", *shm_current_scheduled_block);
 
         sleep(time_quantum);  // sleep for time quantum
     }
 }
 
-void fcfs_scheduler(char *shm_current_scheduled_block,char *shm_done[]) {
-        for(int i=0;i<3;i++){
-            *shm_current_scheduled_block=i;
-            while(!(*shm_done[i])){
-                usleep(2000); //check every 2ms if the process is completed or not
-            }
+void fcfs_scheduler(char *shm_current_scheduled_block, char *shm_done[]) {
+    // Iterate over each process, schedule them one by one.
+    // Assumption: Ci arrived before Cj if i < j
+    for (int i = 0; i < 3; i++) {
+        *shm_current_scheduled_block = i;
+        while (*shm_done[i] == 0) {
+            usleep(2000);  // check every 2ms if the process is completed or not
         }
+    }
 }

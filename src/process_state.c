@@ -5,10 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "constants.h"
 #include "shared_memory.h"
 
-process_state* process_state_init(int process_id, char* shm_filename, char* shm_done_filename, int shm_size, sem_t* cpu_lock) {
-    process_state* state = malloc(sizeof(process_state));  /* Initialized on the heap, to ensure that can be shared between threads. */
+process_state* process_state_init(int process_id, sem_t* cpu_lock) {
+    process_state* state = malloc(sizeof(process_state)); /* Initialized on the heap, to ensure that can be shared between threads. */
     state->id = process_id;
 
     state->done = false;
@@ -21,15 +22,15 @@ process_state* process_state_init(int process_id, char* shm_filename, char* shm_
     state->turn_lock = sem_open(state->sem_turn_fname, O_CREAT, 0644, 0);
 
     /* Initialize Shared Memory Block */
-    state->shm_current_scheduled = attach_memory_block(shm_filename, shm_size);
+    state->shm_current_scheduled = attach_memory_block(SHM_CURRENT_SCHEDULED_FNAME, SHM_BLOCK_SIZE);
     if (state->shm_current_scheduled == NULL) {
-        fprintf(stderr, "ERROR: Could not get block: %s\n", shm_filename);
+        fprintf(stderr, "ERROR: Could not get block: %s\n", SHM_CURRENT_SCHEDULED_FNAME);
         exit(EXIT_FAILURE);
     }
 
-    state->shm_done = attach_memory_block(shm_done_filename, shm_size);
+    state->shm_done = attach_memory_block(SHM_DONE[state->id], SHM_BLOCK_SIZE);
     if (state->shm_done == NULL) {
-        fprintf(stderr, "ERROR: Could not get block: %s\n", shm_done_filename);
+        fprintf(stderr, "ERROR: Could not get block: %s\n", SHM_DONE[state->id]);
         exit(EXIT_FAILURE);
     }
 
