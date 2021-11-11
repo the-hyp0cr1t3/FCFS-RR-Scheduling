@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
 #include "process_state.h"
 #include "scheduling.h"
 #include "shared_memory.h"
@@ -71,10 +70,10 @@ int main(int argc, char *argv[]) {
 
 
 
-                if (strcmp(argv[2], "rr") == 0) {
-                    rr_scheduler(shm_current_scheduled_block, time_quantum);
+                if (strcmp(argv[1], "rr") == 0) {
+                    rr_scheduler(shm_current_scheduled_block, time_quantum, shm_done);
                 } else {
-                    fcfs_scheduler(shm_current_scheduled_block);
+                    fcfs_scheduler(shm_current_scheduled_block,shm_done);
                 }
 
                 // Schedule!
