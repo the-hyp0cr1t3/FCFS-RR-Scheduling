@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <signal.h>
 #include "process_state.h"
 #include "shared_memory.h"
 
@@ -50,7 +50,6 @@ void *monitor(void *args) {
         /*
             If the currently scheduled process is this process, and the value of the turn_lock semaphore is 0 (i.e. the worker thread is wating)
             then increment its value. This allows the worker thread to resume execution.
-
             If this is not the currently scheduled process and the value of the turn_lock sempahore is 1 (i.e. the worker thread is running)
             then decrement its value. This indicates that the worker thread must wait on the turn_lock semaphore to resume execution.
         */
@@ -122,12 +121,13 @@ void child_method(int process_id, sem_t *cpu_lock) {  // Move cpu_lock to be a p
     process_state_destroy(state);
 }
 
-void rr_scheduler(char *shm_current_scheduled_block, int time_quantum) {
+void rr_scheduler(char *shm_current_scheduled_block, int time_quantum,char *shm_done[]) {
     while (true) {
         int cur = *shm_current_scheduled_block, add;
 
-        for(add = 1; add <= 3; add++)
+        for(add = 1; add <= 3; add++){
             if(!*shm_done[(cur + add) % 3]) break;
+        }
 
         if(add > 3) break;
 
@@ -138,5 +138,11 @@ void rr_scheduler(char *shm_current_scheduled_block, int time_quantum) {
     }
 }
 
-void fcfs_scheduler(char *shm_current_scheduled_block) {
+void fcfs_scheduler(char *shm_current_scheduled_block,char *shm_done[]) {
+        for(int i=0;i<3;i++){
+            *shm_current_scheduled_block=i;
+            while(!(*shm_done[i])){
+                usleep(2000); //check every 2ms if the process is completed or not
+            }
+        }
 }
