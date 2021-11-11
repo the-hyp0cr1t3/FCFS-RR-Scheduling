@@ -14,9 +14,11 @@ typedef struct process_state {
     char sem_turn_fname[16];     /** < Name to use for the named semaphore, turn */
     sem_t* cpu_lock;             /** < Semaphore to protect the CPU (as a sparse resource) */
     sem_t* turn_lock;            /** < Semaphore to determine if it is this process's turn */
+    int n;                       /** < workload of the process */
+    long long int result;        /** < result of the process */
 } process_state;
 
-process_state* process_state_init(int process_id, sem_t* cpu_lock);
+process_state* process_state_init(int process_id, sem_t* cpu_lock, int num);
 void process_state_destroy(process_state* state);
 
 #endif

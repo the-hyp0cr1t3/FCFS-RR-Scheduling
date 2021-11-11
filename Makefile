@@ -1,7 +1,7 @@
 CC=gcc
 
 CFLAGS=-Wall -O2
-LIBS=-lpthread
+LIBS=-pthread
 
 BIN=main
 

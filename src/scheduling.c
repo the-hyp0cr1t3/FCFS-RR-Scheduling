@@ -84,32 +84,91 @@ void *monitor(void *args) {
 
 void *worker(void *args) {
     process_state *state = (process_state *)args;
+    if (state->id == 0) {
+        long long int sum = 0;
+        for (int iters = 0; iters < state->n; iters++) {
+            sem_wait(state->turn_lock);
+            sem_wait(state->cpu_lock);
 
-    for (int iters = 0; iters < 6 * (state->id + 1); iters++) {
-        sem_wait(state->turn_lock);
-        sem_wait(state->cpu_lock);
+            //  Critical Section Starts
+            printf("Running Child %d\n", state->id);
+            sum += rand() % NUM + 1;
+            // Critical Section Ends
 
-        //  Critical Section Starts
-        printf("%d: Child %d\n", iters, state->id);
-        sleep(1);
-        // Critical Section Ends
+            sem_post(state->cpu_lock);
+        }
 
-        sem_post(state->cpu_lock);
+        // Write to the SHM_DONE to inform that the process is over.
+        state->done = true;
+        state->result = sum;
+        *state->shm_done = true;
+    } else if (state->id == 1) {
+        FILE *c2f;
+        if (!(c2f = fopen(C2_TXT, "r"))) {
+            perror(C2_TXT);
+            exit(1);
+        }
+        int x, cnt = 0;
+        while (fscanf(c2f, "%d", &x) && cnt++ < state->n) {
+            sem_wait(state->turn_lock);
+            sem_wait(state->cpu_lock);
+
+            //  Critical Section Starts
+            printf("Running Child %d\n", state->id);
+            printf("%d\n", x);
+            fflush(stdout);
+            // Critical Section Ends
+            sem_post(state->cpu_lock);
+            if (feof(c2f)) break;
+        }
+        if (cnt < state->n) {
+            // Prints the numbers in the file even if cnt < n. Is it an issue?
+            fprintf(stderr, "%s: Expected %d, found %d integers.\n", C2_TXT, state->n, cnt);
+            exit(2);
+        }
+        // Write to the SHM_DONE to inform that the process is over.
+        fclose(c2f);
+        state->done = true;
+        *state->shm_done = true;
+
+    } else {
+        FILE *c3f;
+        if (!(c3f = fopen(C3_TXT, "r"))) {
+            perror(C2_TXT);
+            exit(1);
+        }
+        int x, cnt = 0;
+        long long int sum = 0;
+        while (fscanf(c3f, "%d", &x) && cnt++ < state->n) {
+            sem_wait(state->turn_lock);
+            sem_wait(state->cpu_lock);
+
+            //  Critical Section Starts
+            printf("Running Child %d\n", state->id);
+            sum += x;
+            // Critical Section Ends
+            sem_post(state->cpu_lock);
+            if (feof(c3f)) break;
+        }
+        if (cnt < state->n) {
+            // Prints the numbers in the file even if cnt < n. Is it an issue?
+            fprintf(stderr, "%s: Expected %d, found %d integers.\n", C3_TXT, state->n, cnt);
+            exit(2);
+        }
+        // Write to the SHM_DONE to inform that the process is over.
+        fclose(c3f);
+        state->done = true;
+        state->result = sum;
+        *state->shm_done = true;
     }
-
-    // Write to the SHM_DONE to inform that the process is over.
-    state->done = true;
-    *state->shm_done = true;
-
-    // return state;
 }
 
 /**
  * Can't rant. This is too straightforward.
  */
-void child_method(int process_id, sem_t *cpu_lock) {  // Move cpu_lock to be a process local variable?
+long long int child_method(int process_id, sem_t *cpu_lock, int num) {  // Move cpu_lock to be a process local variable?
     /* Initialized on the heap, to ensure that can be shared between threads. */
-    process_state *state = process_state_init(process_id, cpu_lock);
+    process_state *state = process_state_init(process_id, cpu_lock, num);
 
     pthread_t m_id, w_id; /* Monitor and Worker Thread IDs */
 
@@ -119,7 +178,11 @@ void child_method(int process_id, sem_t *cpu_lock) {  // Move cpu_lock to be a p
     pthread_join(w_id, NULL);
     pthread_join(m_id, NULL);
 
+    long long int res = state->result;
+
     process_state_destroy(state);
+
+    return res;
 }
 
 void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[], int time_quantum) {
@@ -139,7 +202,7 @@ void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[], int time_
         *shm_current_scheduled_block = (current_scheduled + new_schedule_offset) % 3;
         // printf("LOG [M]: shm_current_scheduled_block = %d\n", *shm_current_scheduled_block);
 
-        sleep(time_quantum);  // sleep for time quantum
+        usleep(time_quantum);  // sleep for time quantum
     }
 }
 

@@ -8,7 +8,7 @@
 #include "constants.h"
 #include "shared_memory.h"
 
-process_state* process_state_init(int process_id, sem_t* cpu_lock) {
+process_state* process_state_init(int process_id, sem_t* cpu_lock, int num) {
     process_state* state = malloc(sizeof(process_state)); /* Initialized on the heap, to ensure that can be shared between threads. */
     state->id = process_id;
 
@@ -33,6 +33,8 @@ process_state* process_state_init(int process_id, sem_t* cpu_lock) {
         fprintf(stderr, "ERROR: Could not get block: %s\n", SHM_DONE[state->id]);
         exit(EXIT_FAILURE);
     }
+    state->result = 0;
+    state->n = num;
 
     return state;
 }
