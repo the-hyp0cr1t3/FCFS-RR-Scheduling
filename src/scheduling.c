@@ -57,16 +57,29 @@ void *monitor(void *args) {
             then decrement its value. This indicates that the worker thread must wait on the turn_lock semaphore to resume execution.
         */
 
-        if (state->current_scheduled == state->id && turn_lock_val == 0) {
-            sem_post(state->turn_lock);
+        if (state->current_scheduled != state->id && turn_lock_val == 1) {
+            sem_wait(state->turn_lock);
+            
+            // printf("Releasing CPU Lock: %d\n", state->id);
+            sem_post(state->cpu_lock);
+            // printf("Released CPU Lock: %d\n", state->id);
+
         }
 
-        else if (state->current_scheduled != state->id && turn_lock_val == 1) {
-            sem_wait(state->turn_lock);
+        else if (state->current_scheduled == state->id && turn_lock_val == 0) {
+            // printf("Waiting for CPU Lock: %d\n", state->id);
+            sem_wait(state->cpu_lock);
+            // printf("Acquired CPU Lock: %d\n", state->id);
+
+            sem_post(state->turn_lock);
         }
 
         usleep(2000);  //sleep for 2000 us or 2ms
     }
+
+    int cpu_lock_val;
+    sem_getvalue(state->cpu_lock, &cpu_lock_val);
+    if (cpu_lock_val == 0) sem_post(state->cpu_lock);
 
     return state;
 }
@@ -111,7 +124,7 @@ void *worker0(void *args) {
         } while (!turn_val);
 
         // sem_wait(state->turn_lock);
-        sem_wait(state->cpu_lock);
+        // sem_wait(state->cpu_lock);
 
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
@@ -134,7 +147,7 @@ void *worker0(void *args) {
         // Calculate the amount waited for this segment
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
-        sem_post(state->cpu_lock);
+        // sem_post(state->cpu_lock);
     }
 
     if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
@@ -182,7 +195,7 @@ void *worker1(void *args) {
         } while (!turn_val);
 
         // sem_wait(state->turn_lock);
-        sem_wait(state->cpu_lock);
+        // sem_wait(state->cpu_lock);
 
         // The wait is over!
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
@@ -209,7 +222,7 @@ void *worker1(void *args) {
         // printf("Running Child %d\n", state->id);
         // printf("%d\n", x);
         // Critical Section Ends
-        sem_post(state->cpu_lock);
+        // sem_post(state->cpu_lock);
         if (feof(c2f)) break;
     }
 
@@ -267,7 +280,7 @@ void *worker2(void *args) {
         } while (!turn_val);
 
         // sem_wait(state->turn_lock);
-        sem_wait(state->cpu_lock);
+        // sem_wait(state->cpu_lock);
 
         // The wait is over!
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
@@ -292,7 +305,7 @@ void *worker2(void *args) {
         cnt += batched;
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
-        sem_post(state->cpu_lock);
+        // sem_post(state->cpu_lock);
         if (feof(c3f)) break;
     }
     if (cnt < state->n) {
