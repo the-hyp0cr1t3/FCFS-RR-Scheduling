@@ -60,7 +60,7 @@ process_return* process_return_init(int process_id) {
     return rtv;
 }
 
-void serialize_process_return(process_return* rtv, char* filename) {
+void serialize_process_return(char* scheduling_algorithm, int tq, process_return* rtv, char* filename) {
     double wt = 0;
     for (int i = 0; i < rtv->wait_segments; ++i) {
         wt += rtv->wts[i];
@@ -69,8 +69,10 @@ void serialize_process_return(process_return* rtv, char* filename) {
     FILE* file = fopen(filename, "a");
     // process_id, n, start time, wait_iterations, total waiting time, turn around time
     fprintf(file,
-            "%d,%d,%ld.%09ld,%d,%09lf,%09lf\n",
-            rtv->id, rtv->n, rtv->start_time.tv_sec, rtv->start_time.tv_nsec, rtv->wait_segments, wt, rtv->tat);
+            "%s,%d,%d,%d,%d,%ld.%09ld,%d,%09lf,%09lf\n", 
+            scheduling_algorithm,
+            rtv->id, rtv->n, BATCH_SIZE, tq, 
+            rtv->start_time.tv_sec, rtv->start_time.tv_nsec, rtv->wait_segments, wt, rtv->tat);
 
     fclose(file);
 }

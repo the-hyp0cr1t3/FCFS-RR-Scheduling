@@ -8,12 +8,15 @@
 #define READ 0
 #define WRITE 1
 
-#define NUM 1000000     // 1 million
+#define DEFAULT_TIME_QUANTUM (int)(1e3) // 1x10^3 us = 1ms
+#define NUM 1000000  // 1 million
+#define BATCH_SIZE 100
 
 #define C2_TXT "c2.txt"
 #define C3_TXT "c3.txt"
 
 #define STATS_FNAME "stats.csv"
+#define LOG_FNAME "exec.log"
 
 static char *SHM_DONE[] = {"done_0.shm", "done_1.shm", "done_2.shm"};
 

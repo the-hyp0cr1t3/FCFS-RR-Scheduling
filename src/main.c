@@ -1,4 +1,6 @@
+#include <argp.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +16,24 @@
 #include "utils.h"
 
 int main(int argc, char* argv[]) {
+    // Parse Arrguments
+
+    int n1 = (int)(1e6), n2 = (int)(1e6), n3 = (int)(1e6);
+    char scheduling_algorithm[8] = "fcfs";
+    int time_quantum = __INT_MAX__;
+
+    if (argc > 3) {
+        n1 = atoi(argv[1]);
+        n2 = atoi(argv[2]);
+        n3 = atoi(argv[3]);
+    }
+    if (argc > 4) strcpy(scheduling_algorithm, argv[4]);
+    if (strcmp(scheduling_algorithm, "rr") == 0) {
+        time_quantum = (argc > 5) ? atoi(argv[5]) : DEFAULT_TIME_QUANTUM;
+    }
+
+    srand(time(NULL));
+
     // Check that all the required files are present. If not create them.
     check_file(SHM_CURRENT_SCHEDULED_FNAME);
     for (int i = 0; i < 3; ++i) {
@@ -28,15 +48,6 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    srand(time(NULL));
-    int n1, n2, n3;
-    printf("Enter value of n1: ");
-    scanf("%d", &n1);
-    printf("Enter value of n2: ");
-    scanf("%d", &n2);
-    printf("Enter value of n3: ");
-    scanf("%d", &n3);
-
     pid_t child[3];
 
     int fd1[2];
@@ -50,7 +61,7 @@ int main(int argc, char* argv[]) {
 
     if (!child[0]) {  // Child Process 1 -- C1
         long long int sum[1] = {0};
-        sum[0] = child_method(0, cpu_lock, n1);
+        sum[0] = child_method(scheduling_algorithm, time_quantum, 0, cpu_lock, n1);
         close(fd1[READ]);  //writing sum to pipe
         write(fd1[WRITE], sum, sizeof(long long int));
         close(fd1[WRITE]);
@@ -66,7 +77,7 @@ int main(int argc, char* argv[]) {
         child[1] = fork();
 
         if (!child[1]) {  // Child Process 2 -- C2
-            child_method(1, cpu_lock, n2);
+            child_method(scheduling_algorithm, time_quantum, 1, cpu_lock, n2);
             char msg[] = "Done Printing";
             close(fd2[READ]);  //writing message to pipe
             write(fd2[WRITE], msg, strlen(msg) + 1);
@@ -84,19 +95,25 @@ int main(int argc, char* argv[]) {
 
             if (!child[2]) {  // Child Process 3 -- C3
                 long long int s[1] = {0};
-                s[0] = child_method(2, cpu_lock, n3);
+                s[0] = child_method(scheduling_algorithm, time_quantum, 2, cpu_lock, n3);
                 close(fd3[READ]);  //writing sum to pipe
                 write(fd3[WRITE], s, sizeof(long long int));
                 close(fd3[WRITE]);
             } else {
                 //  Parent Process -- M
 
-                // Basic Logs of the Process IDs
-                printf("Process PIDS\n");
-                printf("M:\t%d\n", getpid());
-                printf("C1:\t%d\n", child[0]);
-                printf("C2:\t%d\n", child[1]);
-                printf("C3:\t%d\n", child[2]);
+                FILE* log_file = fopen(LOG_FNAME, "a");
+
+                // Basic Logs
+                fprintf(log_file, "Scheduling Algorithm: %s\n", scheduling_algorithm);
+                fprintf(log_file, "Time Quntum: %d\n", time_quantum);
+                fprintf(log_file, "Batch Size: %d\n", BATCH_SIZE);
+                fprintf(log_file, "Process PIDS\n");
+                fprintf(log_file, "M:\t%d\n", getpid());
+                fprintf(log_file, "C1:\t%d\tn:\t%d\n", child[0], n1);
+                fprintf(log_file, "C2:\t%d\tn:\t%d\n", child[1], n2);
+                fprintf(log_file, "C3:\t%d\tn:\t%d\n", child[2], n3);
+                fclose(log_file);
 
                 // Grab the current scheduled shared memory block.
                 // This needs to be created and initialized before any scheduling starts.
@@ -122,11 +139,12 @@ int main(int argc, char* argv[]) {
                 }
 
                 // Schedule!
-                if (strcmp(argv[1], "rr") == 0) {
-                    int time_quantum = (argc == 3) ? atoi(argv[2]) : (int)5e5;
+                if (strcmp(scheduling_algorithm, "rr") == 0) {
                     rr_scheduler(shm_current_scheduled_block, shm_done, time_quantum);
-                } else {
+                } else if (strcmp(scheduling_algorithm, "fcfs") == 0) {
                     fcfs_scheduler(shm_current_scheduled_block, shm_done);
+                } else {
+                    fprintf(stderr, "ERROR: Invalid Scheduler. Try again with either fcfs or rr.\n");
                 }
 
                 wait(NULL);

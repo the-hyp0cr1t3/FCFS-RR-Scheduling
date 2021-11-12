@@ -45,7 +45,7 @@ void *monitor(void *args) {
 
     while (!state->done) {
         /* Update the running status from the shared memory */
-        state->current_scheduled = *state->shm_current_scheduled;
+        state->current_scheduled = (int)*state->shm_current_scheduled;
 
         // printf("LOG [%d]: Current Running Process: %d\n", state->id, state->current_running_proc);
         sem_getvalue(state->turn_lock, &turn_lock_val);
@@ -92,31 +92,43 @@ void *worker0(void *args) {
     //printf("[%d] Started Execution at: ", state->id);
 
     struct timespec st, et;
+
+    int x, cnt = 0;
     long long int sum = 0;
-    for (int iters = 0; iters < state->n; iters++) {
+
+    for (cnt = 0; cnt < state->n;) {
         if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
             exit(EXIT_FAILURE);
         }
+
         sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
 
-        // The wait is over!
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
             exit(EXIT_FAILURE);
         }
 
+        int batched;
+        for (batched = 0; batched + cnt < state->n && batched < BATCH_SIZE; ++batched) {
+            //  Critical Section Starts
+            //  printf("[%d] cnt: %d\n", state->id, cnt + batched);
+            x = rand() % NUM + 1;
+            sum += x;
+            // Critical Section Ends
+        }
+
+        cnt += batched;
+
+        // The wait is over!
+
         // Calculate the amount waited for this segment
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
-        //  Critical Section Starts
-        // printf("Running Child %d\n", state->id);
-        sum += rand() % NUM + 1;
-        // Critical Section Ends
-
         sem_post(state->cpu_lock);
     }
+
     if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
         fprintf(stderr, "ERROR: call to timespec_get failed \n");
         exit(EXIT_FAILURE);
@@ -132,6 +144,7 @@ void *worker0(void *args) {
 
     return rtv;
 }
+
 void *worker1(void *args) {
     process_state *state = (process_state *)args;
     process_return *rtv = process_return_init(state->id);
@@ -147,11 +160,13 @@ void *worker1(void *args) {
         exit(1);
     }
     int x, cnt = 0;
-    while (fscanf(c2f, "%d", &x) && cnt++ < state->n) {
+    //    while (fscanf(c2f, "%d", &x) && cnt++ < state->n) {
+    for (cnt = 0; cnt < state->n;) {
         if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
             exit(EXIT_FAILURE);
         }
+
         sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
 
@@ -165,24 +180,41 @@ void *worker1(void *args) {
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
         //  Critical Section Starts
+        int batched;
+        for (batched = 0; batched + cnt < state->n && batched < BATCH_SIZE; ++batched) {
+            if (fscanf(c2f, "%d", &x) == 0) {
+                break;
+            }
+
+            printf("%d\t", x);
+            // printf("[%d] cnt: %d\n", state->id, cnt + batched);
+        }
+
+        cnt += batched;
+
         // printf("Running Child %d\n", state->id);
-        printf("%d\n", x);
-        fflush(stdout);
+        // printf("%d\n", x);
         // Critical Section Ends
         sem_post(state->cpu_lock);
         if (feof(c2f)) break;
     }
+
+    fflush(stdout);
+
     if (cnt < state->n) {
         // Prints the numbers in the file even if cnt < n. Is it an issue?
         fprintf(stderr, "%s: Expected %d, found %d integers.\n", C2_TXT, state->n, cnt);
         exit(2);
     }
+
     // Write to the SHM_DONE to inform that the process is over.
     fclose(c2f);
     if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
         fprintf(stderr, "ERROR: call to timespec_get failed \n");
         exit(EXIT_FAILURE);
     }
+
+    fflush(stdout);
 
     // Calculate the turn around time
     rtv->tat = get_time_diff(rtv->start_time, et);
@@ -207,11 +239,13 @@ void *worker2(void *args) {
     }
     int x, cnt = 0;
     long long int sum = 0;
-    while (fscanf(c3f, "%d", &x) && cnt++ < state->n) {
+    for (cnt = 0; cnt < state->n;) {
+        // Calculate the amount waited for this segment
         if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
             exit(EXIT_FAILURE);
         }
+
         sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
 
@@ -221,13 +255,23 @@ void *worker2(void *args) {
             exit(EXIT_FAILURE);
         }
 
-        // Calculate the amount waited for this segment
+        int batched;
+        for (batched = 0; batched + cnt < state->n && batched < BATCH_SIZE; ++batched) {
+            //  Critical Section Starts
+            // printf("Running Child %d\n", state->id);
+            if (fscanf(c3f, "%d", &x) == 0) {
+                break;
+            }
+
+            sum += x;
+            //            printf("[%d] cnt: %d\n", state->id, cnt + batched);
+
+            // Critical Section Ends
+        }
+
+        cnt += batched;
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
-        //  Critical Section Starts
-        // printf("Running Child %d\n", state->id);
-        sum += x;
-        // Critical Section Ends
         sem_post(state->cpu_lock);
         if (feof(c3f)) break;
     }
@@ -254,7 +298,7 @@ void *worker2(void *args) {
 /**
  * Can't rant. This is too straightforward.
  */
-long long int child_method(int process_id, sem_t *cpu_lock, int num) {  // Move cpu_lock to be a process local variable?
+long long int child_method(char *scheduling_algorithm, int tq, int process_id, sem_t *cpu_lock, int num) {  // Move cpu_lock to be a process local variable?
     /* Initialized on the heap, to ensure that can be shared between threads. */
     process_state *state = process_state_init(process_id, cpu_lock, num);
     process_return *rtv;
@@ -279,13 +323,15 @@ long long int child_method(int process_id, sem_t *cpu_lock, int num) {  // Move 
         wt += rtv->wts[i];
     }
 
-    printf("PROCESS: %d\n", rtv->id);
-    printf("[%d] Start Time: %s.%09ld UTC\n", rtv->id, buff, rtv->start_time.tv_nsec);
-    printf("[%d] Number of wait segments: %d\n", rtv->id, rtv->wait_segments);
-    printf("[%d] Total Waiting Time for this Process: %09lf\n", rtv->id, wt);
-    printf("[%d] Turn-Around Time: %09lf\n", rtv->id, rtv->tat);
+    FILE *log_file = fopen(LOG_FNAME, "a");
+    fprintf(log_file, "PROCESS: %d\n", rtv->id);
+    fprintf(log_file, "[%d] Start Time: %s.%09ld UTC\n", rtv->id, buff, rtv->start_time.tv_nsec);
+    fprintf(log_file, "[%d] Number of wait segments: %d\n", rtv->id, rtv->wait_segments);
+    fprintf(log_file, "[%d] Total Waiting Time for this Process: %09lf\n", rtv->id, wt);
+    fprintf(log_file, "[%d] Turn-Around Time: %09lf\n", rtv->id, rtv->tat);
+    fclose(log_file);
 
-    serialize_process_return(rtv, STATS_FNAME);
+    serialize_process_return(scheduling_algorithm, tq, rtv, STATS_FNAME);
 
     long long int res = state->result;
 
