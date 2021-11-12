@@ -59,7 +59,9 @@ void *monitor(void *args) {
 
         if (state->current_scheduled == state->id && turn_lock_val == 0) {
             sem_post(state->turn_lock);
-        } else if (state->current_scheduled != state->id && turn_lock_val == 1) {
+        }
+
+        else if (state->current_scheduled != state->id && turn_lock_val == 1) {
             sem_wait(state->turn_lock);
         }
 
@@ -102,7 +104,13 @@ void *worker0(void *args) {
             exit(EXIT_FAILURE);
         }
 
-        sem_wait(state->turn_lock);
+        int turn_val;
+
+        do {
+            sem_getvalue(state->turn_lock, &turn_val);
+        } while (!turn_val);
+
+        // sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
 
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
@@ -167,7 +175,13 @@ void *worker1(void *args) {
             exit(EXIT_FAILURE);
         }
 
-        sem_wait(state->turn_lock);
+        int turn_val;
+
+        do {
+            sem_getvalue(state->turn_lock, &turn_val);
+        } while (!turn_val);
+
+        // sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
 
         // The wait is over!
@@ -246,7 +260,13 @@ void *worker2(void *args) {
             exit(EXIT_FAILURE);
         }
 
-        sem_wait(state->turn_lock);
+        int turn_val;
+
+        do {
+            sem_getvalue(state->turn_lock, &turn_val);
+        } while (!turn_val);
+
+        // sem_wait(state->turn_lock);
         sem_wait(state->cpu_lock);
 
         // The wait is over!
