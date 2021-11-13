@@ -149,6 +149,12 @@ int main(int argc, char* argv[]) {
 
                 wait(NULL);
                 wait(NULL);
+
+                FILE* file = fopen(STATS_FNAME, "a");
+                // process_id, n, start time, wait_iterations, total waiting time, turn around time
+                fprintf(file, "\n");
+                fclose(file);
+
                 wait(NULL);
 
                 char mc2[15];

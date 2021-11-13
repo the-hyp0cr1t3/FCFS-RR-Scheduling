@@ -59,18 +59,12 @@ void *monitor(void *args) {
 
         if (state->current_scheduled != state->id && turn_lock_val == 1) {
             sem_wait(state->turn_lock);
-            
-            // printf("Releasing CPU Lock: %d\n", state->id);
             sem_post(state->cpu_lock);
-            // printf("Released CPU Lock: %d\n", state->id);
 
         }
 
         else if (state->current_scheduled == state->id && turn_lock_val == 0) {
-            // printf("Waiting for CPU Lock: %d\n", state->id);
             sem_wait(state->cpu_lock);
-            // printf("Acquired CPU Lock: %d\n", state->id);
-
             sem_post(state->turn_lock);
         }
 
@@ -123,9 +117,6 @@ void *worker0(void *args) {
             sem_getvalue(state->turn_lock, &turn_val);
         } while (!turn_val);
 
-        // sem_wait(state->turn_lock);
-        // sem_wait(state->cpu_lock);
-
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
             exit(EXIT_FAILURE);
@@ -134,7 +125,6 @@ void *worker0(void *args) {
         int batched;
         for (batched = 0; batched + cnt < state->n && batched < BATCH_SIZE; ++batched) {
             //  Critical Section Starts
-            //  printf("[%d] cnt: %d\n", state->id, cnt + batched);
             x = rand() % NUM + 1;
             sum += x;
             // Critical Section Ends
@@ -146,8 +136,6 @@ void *worker0(void *args) {
 
         // Calculate the amount waited for this segment
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
-
-        // sem_post(state->cpu_lock);
     }
 
     if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
@@ -181,7 +169,6 @@ void *worker1(void *args) {
         exit(1);
     }
     int x, cnt = 0;
-    //    while (fscanf(c2f, "%d", &x) && cnt++ < state->n) {
     for (cnt = 0; cnt < state->n;) {
         if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
@@ -193,9 +180,6 @@ void *worker1(void *args) {
         do {
             sem_getvalue(state->turn_lock, &turn_val);
         } while (!turn_val);
-
-        // sem_wait(state->turn_lock);
-        // sem_wait(state->cpu_lock);
 
         // The wait is over!
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
@@ -214,15 +198,11 @@ void *worker1(void *args) {
             }
 
             printf("%d\t", x);
-            // printf("[%d] cnt: %d\n", state->id, cnt + batched);
         }
 
         cnt += batched;
 
-        // printf("Running Child %d\n", state->id);
-        // printf("%d\n", x);
         // Critical Section Ends
-        // sem_post(state->cpu_lock);
         if (feof(c2f)) break;
     }
 
@@ -279,9 +259,6 @@ void *worker2(void *args) {
             sem_getvalue(state->turn_lock, &turn_val);
         } while (!turn_val);
 
-        // sem_wait(state->turn_lock);
-        // sem_wait(state->cpu_lock);
-
         // The wait is over!
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
@@ -291,21 +268,17 @@ void *worker2(void *args) {
         int batched;
         for (batched = 0; batched + cnt < state->n && batched < BATCH_SIZE; ++batched) {
             //  Critical Section Starts
-            // printf("Running Child %d\n", state->id);
             if (fscanf(c3f, "%d", &x) == 0) {
                 break;
             }
 
             sum += x;
-            //            printf("[%d] cnt: %d\n", state->id, cnt + batched);
-
             // Critical Section Ends
         }
 
         cnt += batched;
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
-        // sem_post(state->cpu_lock);
         if (feof(c3f)) break;
     }
     if (cnt < state->n) {
@@ -388,7 +361,6 @@ void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[], int time_
 
         // Once a process to be scheduled has been found, schedule it by writing to the shared memory block
         *shm_current_scheduled_block = (current_scheduled + new_schedule_offset) % 3;
-        // printf("LOG [M]: shm_current_scheduled_block = %d\n", *shm_current_scheduled_block);
 
         usleep(time_quantum);  // sleep for time quantum
     }
