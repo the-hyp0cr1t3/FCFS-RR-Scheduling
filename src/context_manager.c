@@ -1,10 +1,11 @@
+#include "context_manager.h"
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "constants.h"
-#include "context_manager.h"
 
 static char scheduling_algorithm[8];
 static int time_quantum;
@@ -34,6 +35,7 @@ task argparse(int argc, char *argv[]) {
         }
 
         if (argc == 6) {  // bin rr tq n1 n2 n3
+            time_quantum = atoi(argv[2]);
             ts.n1 = atoi(argv[3]);
             ts.n2 = atoi(argv[4]);
             ts.n3 = atoi(argv[5]);
