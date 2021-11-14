@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "constants.h"
+#include "context_manager.h"
 #include "process_state.h"
 #include "shared_memory.h"
 #include "utils.h"
@@ -73,7 +74,9 @@ void *monitor(void *args) {
 
     int cpu_lock_val;
     sem_getvalue(state->cpu_lock, &cpu_lock_val);
-    if (cpu_lock_val == 0) sem_post(state->cpu_lock);
+    if (cpu_lock_val == 0) {
+        sem_post(state->cpu_lock);
+    }
 
     return state;
 }
@@ -116,6 +119,7 @@ void *worker0(void *args) {
         do {
             sem_getvalue(state->turn_lock, &turn_val);
         } while (!turn_val);
+        //  sem_wait(state->cpu_lock);
 
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
@@ -132,7 +136,8 @@ void *worker0(void *args) {
 
         cnt += batched;
 
-        // The wait is over!
+        // Critical Section Ends
+        //  sem_post(state->cpu_lock);
 
         // Calculate the amount waited for this segment
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
@@ -180,15 +185,13 @@ void *worker1(void *args) {
         do {
             sem_getvalue(state->turn_lock, &turn_val);
         } while (!turn_val);
+        //  sem_wait(state->cpu_lock);
 
         // The wait is over!
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
             exit(EXIT_FAILURE);
         }
-
-        // Calculate the amount waited for this segment
-        rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
         //  Critical Section Starts
         int batched;
@@ -201,12 +204,15 @@ void *worker1(void *args) {
         }
 
         cnt += batched;
+        // Critical Section Ends
+        //  sem_post(state->cpu_lock);
+
+        // Calculate the amount waited for this segment
+        rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
         // Critical Section Ends
         if (feof(c2f)) break;
     }
-
-    fflush(stdout);
 
     if (cnt < state->n) {
         // Prints the numbers in the file even if cnt < n. Is it an issue?
@@ -258,6 +264,7 @@ void *worker2(void *args) {
         do {
             sem_getvalue(state->turn_lock, &turn_val);
         } while (!turn_val);
+        //  sem_wait(state->cpu_lock);
 
         // The wait is over!
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
@@ -277,6 +284,9 @@ void *worker2(void *args) {
         }
 
         cnt += batched;
+
+        // Critical Section Ends
+        //  sem_post(state->cpu_lock);
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
         if (feof(c3f)) break;
@@ -304,7 +314,7 @@ void *worker2(void *args) {
 /**
  * Can't rant. This is too straightforward.
  */
-long long int child_method(char *scheduling_algorithm, int tq, int process_id, sem_t *cpu_lock, int num) {  // Move cpu_lock to be a process local variable?
+long long int child_method(int process_id, sem_t *cpu_lock, int num) {  // Move cpu_lock to be a process local variable?
     /* Initialized on the heap, to ensure that can be shared between threads. */
     process_state *state = process_state_init(process_id, cpu_lock, num);
     process_return *rtv;
@@ -337,7 +347,7 @@ long long int child_method(char *scheduling_algorithm, int tq, int process_id, s
     fprintf(log_file, "[%d] Turn-Around Time: %09lf\n", rtv->id, rtv->tat);
     fclose(log_file);
 
-    serialize_process_return(scheduling_algorithm, tq, rtv, STATS_FNAME);
+    serialize_process_return(rtv);
 
     long long int res = state->result;
 
@@ -346,7 +356,8 @@ long long int child_method(char *scheduling_algorithm, int tq, int process_id, s
     return res;
 }
 
-void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[], int time_quantum) {
+void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[]) {
+    struct timespec current_time;
     while (true) {
         int current_scheduled = *shm_current_scheduled_block;
         int new_schedule_offset = 0;
@@ -362,15 +373,33 @@ void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[], int time_
         // Once a process to be scheduled has been found, schedule it by writing to the shared memory block
         *shm_current_scheduled_block = (current_scheduled + new_schedule_offset) % 3;
 
-        usleep(time_quantum);  // sleep for time quantum
+        if (timespec_get(&current_time, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
+        }
+
+        double fmted_time = current_time.tv_sec + (current_time.tv_nsec / 1e9);
+        printf("\n[%lf] scheduled: %d\n", fmted_time, *shm_current_scheduled_block);
+
+        usleep(get_time_quantum());  // sleep for time quantum
     }
 }
 
 void fcfs_scheduler(char *shm_current_scheduled_block, char *shm_done[]) {
     // Iterate over each process, schedule them one by one.
     // Assumption: Ci arrived before Cj if i < j
+    struct timespec current_time;
     for (int i = 0; i < 3; i++) {
         *shm_current_scheduled_block = i;
+
+        if (timespec_get(&current_time, TIME_UTC) != TIME_UTC) {
+            fprintf(stderr, "ERROR: call to timespec_get failed \n");
+            exit(EXIT_FAILURE);
+        }
+
+        double fmted_time = current_time.tv_sec + (current_time.tv_nsec / 1e9);
+        printf("\n[%lf] scheduled: %d\n", fmted_time, *shm_current_scheduled_block);
+
         while (*shm_done[i] == 0) {
             usleep(2000);  // check every 2ms if the process is completed or not
         }

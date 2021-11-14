@@ -34,6 +34,6 @@ void process_state_destroy(process_state* state);
 process_return* process_return_init(int process_id);
 void process_return_destroy(process_return* rtv);
 
-void serialize_process_return(char* scheduling_algorithm, int tq, process_return* rtv, char* filename);
+void serialize_process_return(process_return* rtv);
 
 #endif

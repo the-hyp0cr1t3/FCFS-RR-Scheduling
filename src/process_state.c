@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "constants.h"
+#include "context_manager.h"
 #include "shared_memory.h"
 
 process_state* process_state_init(int process_id, sem_t* cpu_lock, int num) {
@@ -60,18 +61,18 @@ process_return* process_return_init(int process_id) {
     return rtv;
 }
 
-void serialize_process_return(char* scheduling_algorithm, int tq, process_return* rtv, char* filename) {
+void serialize_process_return(process_return* rtv) {
     double wt = 0;
     for (int i = 0; i < rtv->wait_segments; ++i) {
         wt += rtv->wts[i];
     }
 
-    FILE* file = fopen(filename, "a");
+    FILE* file = fopen(STATS_FNAME, "a");
     // process_id, n, start time, wait_iterations, total waiting time, turn around time
     fprintf(file,
-            "%s,%d,%d,%d,%d,%ld.%09ld,%d,%09lf,%09lf\n", 
-            scheduling_algorithm,
-            rtv->id, rtv->n, BATCH_SIZE, tq, 
+            "%s,%d,%d,%d,%d,%ld.%09ld,%d,%09lf,%09lf\n",
+            get_scheduling_algorithm(),
+            rtv->id, rtv->n, BATCH_SIZE, get_time_quantum(),
             rtv->start_time.tv_sec, rtv->start_time.tv_nsec, rtv->wait_segments, wt, rtv->tat);
 
     fclose(file);
