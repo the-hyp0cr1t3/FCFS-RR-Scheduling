@@ -60,16 +60,13 @@ void *monitor(void *args) {
 
         if (state->current_scheduled != state->id && turn_lock_val == 1) {
             sem_wait(state->turn_lock);
-            sem_post(state->cpu_lock);
-
         }
 
         else if (state->current_scheduled == state->id && turn_lock_val == 0) {
-            sem_wait(state->cpu_lock);
             sem_post(state->turn_lock);
         }
 
-        usleep(2000);  //sleep for 2000 us or 2ms
+        usleep(2);  //sleep for 20us
     }
 
     int cpu_lock_val;
@@ -119,7 +116,7 @@ void *worker0(void *args) {
         do {
             sem_getvalue(state->turn_lock, &turn_val);
         } while (!turn_val);
-        //  sem_wait(state->cpu_lock);
+        sem_wait(state->cpu_lock);
 
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
@@ -137,7 +134,7 @@ void *worker0(void *args) {
         cnt += batched;
 
         // Critical Section Ends
-        //  sem_post(state->cpu_lock);
+        sem_post(state->cpu_lock);
 
         // Calculate the amount waited for this segment
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
@@ -185,7 +182,7 @@ void *worker1(void *args) {
         do {
             sem_getvalue(state->turn_lock, &turn_val);
         } while (!turn_val);
-        //  sem_wait(state->cpu_lock);
+        sem_wait(state->cpu_lock);
 
         // The wait is over!
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
@@ -205,7 +202,7 @@ void *worker1(void *args) {
 
         cnt += batched;
         // Critical Section Ends
-        //  sem_post(state->cpu_lock);
+        sem_post(state->cpu_lock);
 
         // Calculate the amount waited for this segment
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
@@ -264,7 +261,7 @@ void *worker2(void *args) {
         do {
             sem_getvalue(state->turn_lock, &turn_val);
         } while (!turn_val);
-        //  sem_wait(state->cpu_lock);
+        sem_wait(state->cpu_lock);
 
         // The wait is over!
         if (timespec_get(&et, TIME_UTC) != TIME_UTC) {
@@ -286,11 +283,12 @@ void *worker2(void *args) {
         cnt += batched;
 
         // Critical Section Ends
-        //  sem_post(state->cpu_lock);
+        sem_post(state->cpu_lock);
         rtv->wts[rtv->wait_segments++] = get_time_diff(st, et);
 
         if (feof(c3f)) break;
     }
+
     if (cnt < state->n) {
         // Prints the numbers in the file even if cnt < n. Is it an issue?
         fprintf(stderr, "%s: Expected %d, found %d integers.\n", C3_TXT, state->n, cnt);
@@ -371,15 +369,16 @@ void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[]) {
         if (new_schedule_offset > 3) break;
 
         // Once a process to be scheduled has been found, schedule it by writing to the shared memory block
-        *shm_current_scheduled_block = (current_scheduled + new_schedule_offset) % 3;
+        current_scheduled = (current_scheduled + new_schedule_offset) % 3;
+        *shm_current_scheduled_block = current_scheduled;
 
         if (timespec_get(&current_time, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
             exit(EXIT_FAILURE);
         }
-
         double fmted_time = current_time.tv_sec + (current_time.tv_nsec / 1e9);
-        printf("\n[%lf] scheduled: %d\n", fmted_time, *shm_current_scheduled_block);
+        printf("\n[%lf] scheduled: %d\n", fmted_time, current_scheduled);
+        fflush(stdout);
 
         usleep(get_time_quantum());  // sleep for time quantum
     }
@@ -399,7 +398,8 @@ void fcfs_scheduler(char *shm_current_scheduled_block, char *shm_done[]) {
 
         double fmted_time = current_time.tv_sec + (current_time.tv_nsec / 1e9);
         printf("\n[%lf] scheduled: %d\n", fmted_time, *shm_current_scheduled_block);
-
+        fflush(stdout);
+        
         while (*shm_done[i] == 0) {
             usleep(2000);  // check every 2ms if the process is completed or not
         }

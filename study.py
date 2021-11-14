@@ -15,11 +15,11 @@ for n1 in n:
 print(f"ntuples size: {len(ntuples)}")
 
 for n1, n2, n3 in ntuples:
-    arguments.append(f"./bin/main {n1} {n2} {n3} fcfs > op.txt\n")
+    arguments.append(f"./bin/main fcfs {n1} {n2} {n3}  > op.txt\n")
 
 for n1, n2, n3 in ntuples:
     for tq in time_quantum:
-        arguments.append(f"./bin/main {n1} {n2} {n3} rr {tq} > op.txt\n")
+        arguments.append(f"./bin/main rr {tq} {n1} {n2} {n3}  > op.txt\n")
 
 
 print(f"Number of Experiments: {len(arguments)}")
