@@ -5,8 +5,8 @@
 #define SHM_BLOCK_SIZE 4096
 #define SHM_CURRENT_SCHEDULED_FNAME "current_scheduled.shm"
 
-#define READ 0
-#define WRITE 1
+#define PIPE_READ 0
+#define PIPE_WRITE 1
 
 #define DEFAULT_TIME_QUANTUM (int)(1e3) // 1x10^3 us = 1ms
 #define NUM 1000000  // 1 million
