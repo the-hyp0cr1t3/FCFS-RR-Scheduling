@@ -7,6 +7,9 @@
 
 #include "constants.h"
 
+// Scheduling Algorithm and Time Quantum can be set ONLY using arg_parse function, and hence can not be tampered with.
+// This is a security feature, and prevents accidental modification of these variables.
+// The singleton pattern also prevents the need for any kind of argument drilling, and long chained argument passing.
 static char scheduling_algorithm[8];
 static int time_quantum;
 
@@ -35,6 +38,11 @@ task argparse(int argc, char *argv[]) {
         }
 
         if (argc == 6) {  // bin rr tq n1 n2 n3
+            if (strcmp(scheduling_algorithm, "rr")) {
+                fprintf(stderr, "ERROR: Argument Parsing failed due to Invalid Argument List. Use one of the specified formats only\n");
+                exit(EXIT_FAILURE);
+            }
+
             time_quantum = atoi(argv[2]);
             ts.n1 = atoi(argv[3]);
             ts.n2 = atoi(argv[4]);
