@@ -14,24 +14,22 @@
 | Hriday G          | 2019A7PS1212H |
 
 
-## Compilation Instructions
+## Execution Instructions
 
-To compile code on a linux machine run:
+**Pre-requisites:**
+- Linux environment
+- Text files c2.txt and c3.txt. To generate a file on demand, use `utils/gen_txt.c`
+    ```sh
+    gcc utils/gen_txt.c -o gen_txt
+    ./gen_txt # Call the binary, it will ask for values of n2 and n3. Provide as required.
+    ```
 
+**Compilation:**
 ```sh
 make # To clear all output directories and then compile object
 ```
-## Execution Instructions
 
-### Pre-requisites:
-- c2.txt and c3.txt files with SUFFICIENT number of lines must be present. 
-- To generate a file on demand, use `utils/gen_txt.c`
-
-```sh
-gcc utils/gen_txt.c -o gen_txt
-./gen_txt # Call the binary, it will ask for values of n2 and n3. Provide as required.
-```
-
+**Execution:**
 1. To run with default arguments run:
 
 ```sh
