@@ -6,9 +6,10 @@
 #include <string.h>
 
 #include "constants.h"
+#include "context_manager.h"
 #include "shared_memory.h"
 
-process_state* process_state_init(int process_id, sem_t* cpu_lock) {
+process_state* process_state_init(int process_id, sem_t* cpu_lock, int num) {
     process_state* state = malloc(sizeof(process_state)); /* Initialized on the heap, to ensure that can be shared between threads. */
     state->id = process_id;
 
@@ -21,18 +22,19 @@ process_state* process_state_init(int process_id, sem_t* cpu_lock) {
     sem_unlink(state->sem_turn_fname);
     state->turn_lock = sem_open(state->sem_turn_fname, O_CREAT, 0644, 0);
 
-    /* Initialize Shared Memory Block */
+    // Initialize Shared Memory Block
     state->shm_current_scheduled = attach_memory_block(SHM_CURRENT_SCHEDULED_FNAME, SHM_BLOCK_SIZE);
     if (state->shm_current_scheduled == NULL) {
         fprintf(stderr, "ERROR: Could not get block: %s\n", SHM_CURRENT_SCHEDULED_FNAME);
         exit(EXIT_FAILURE);
     }
 
-    state->shm_done = attach_memory_block(SHM_DONE[state->id], SHM_BLOCK_SIZE);
+    state->shm_done = attach_memory_block(SHM_DONE_FNAMES[state->id], SHM_BLOCK_SIZE);
     if (state->shm_done == NULL) {
-        fprintf(stderr, "ERROR: Could not get block: %s\n", SHM_DONE[state->id]);
+        fprintf(stderr, "ERROR: Could not get block: %s\n", SHM_DONE_FNAMES[state->id]);
         exit(EXIT_FAILURE);
     }
+    state->n = num;
 
     return state;
 }
@@ -58,17 +60,35 @@ process_return* process_return_init(int process_id) {
     return rtv;
 }
 
-void serialize_process_return(process_return* rtv, char* filename) {
+void process_return_destroy(process_return* rtv) {
+    free(rtv);
+    rtv = NULL;
+}
+
+void serialize_process_return(process_return* rtv) {
+    char formatted_time[100];
+    strftime(formatted_time, sizeof formatted_time, "%D %T", gmtime(&rtv->start_time.tv_sec));
+
     double wt = 0;
     for (int i = 0; i < rtv->wait_segments; ++i) {
         wt += rtv->wts[i];
     }
 
-    FILE* file = fopen(filename, "a");
-    // process_id, n, start time, wait_iterations, total waiting time, turn around time
-    fprintf(file,
-            "%d,%d,%ld.%09ld,%d,%09lf,%09lf\n",
-            rtv->id, rtv->n, rtv->start_time.tv_sec, rtv->start_time.tv_nsec, rtv->wait_segments, wt, rtv->tat);
+    FILE* log_file = fopen(LOG_FNAME, "a");
+    fprintf(log_file, "PROCESS: %d\n", rtv->id);
+    fprintf(log_file, "[%d] Start Time: %s.%09ld UTC\n", rtv->id, formatted_time, rtv->start_time.tv_nsec);
+    fprintf(log_file, "[%d] Number of wait segments: %d\n", rtv->id, rtv->wait_segments);
+    fprintf(log_file, "[%d] Total Waiting Time for this Process: %09lf\n", rtv->id, wt);
+    fprintf(log_file, "[%d] Turn-Around Time: %09lf\n", rtv->id, rtv->tat);
+    fclose(log_file);
 
-    fclose(file);
+    FILE* stats_file = fopen(STATS_FNAME, "a");
+    // scheduling_algo, process_id, n, BATCH_SIZE, time_quantum, start time, wait_iterations, total waiting time, turn around time
+    fprintf(stats_file,
+            "%s,%d,%d,%d,%d,%ld.%09ld,%d,%09lf,%09lf\n",
+            get_scheduling_algorithm(),
+            rtv->id, rtv->n, BATCH_SIZE, get_time_quantum(),
+            rtv->start_time.tv_sec, rtv->start_time.tv_nsec, rtv->wait_segments, wt, rtv->tat);
+
+    fclose(stats_file);
 }
