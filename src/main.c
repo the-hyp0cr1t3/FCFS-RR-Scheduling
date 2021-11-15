@@ -1,3 +1,15 @@
+/*
+Authors:
+    1. Nandan H R        2019A7PS0164H
+    2. Jeevan Jyot Singh 2019A7PS0172H
+    3. Ankita Behera     2019A7PS0075H
+    4. Anuradha Pandey   2019A7PS0265H
+    5. Omkar Pitale      2019A7PS0083H
+    6. Aditya Chopra     2019A7PS0178H
+    7. Durba Satpathi    2019A7PS0972H
+    8. Hriday G          2019A7PS1212H
+*/
+
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
