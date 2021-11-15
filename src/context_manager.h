@@ -10,7 +10,7 @@ typedef struct task {
 /**
 * Parses the Command Line Arguments and set the scheduling_algorithm and time_quantum variables.
 * Returns a task, after parsing the n1, n2 and n3 values.
-* Parsing is consisten only if  a few acceptable ways to call the program are used.
+* Parsing is consistent only if a few acceptable ways to call the program are used.
 * Any other invocation, or argument list results in undefined behaviour
 * 1. (binary) - Called with all default parameters
 * 2. (binary) algorithm - Called with scheduling algorithm specified. Must be fcfs or rr. All other parameters are used with default values
@@ -19,7 +19,7 @@ typedef struct task {
 * 
 * @param argc: Number of command line arguments
 * @param argv: Command Line Arguments as char* buffers
-* @return ts: Returns parsed task sizes
+* @return Returns parsed task sizes
 */
 task argparse(int argc, char *argv[]);
 

@@ -10,7 +10,6 @@
 
 #define DEFAULT_TIME_QUANTUM (int)(1e3)  // 1x10^3 us = 1ms
 #define NUM (int)(1e6)                   // 1 million
-#define BATCH_SIZE 1
 
 #define C2_TXT "c2.txt"
 #define C3_TXT "c3.txt"

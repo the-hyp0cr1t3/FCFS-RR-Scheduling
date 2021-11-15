@@ -19,14 +19,15 @@
  * 
  * Intricacies:
  * - The polling is done at regular time intervals, say t (until the task assigned has finished, indicated by the done variable.)
- *   If t is too short, then the state update latency would be low but CPU usage would spike.
+ *   If t is too short, then the state update latency would be low but CPU usage would spike. 
  *   If t is too long, then state update latency would be too high, and might miss the scheduler updates by a large margin.
  * 
  * - The value of the 'turn' semaphore is always either 0 or 1. 
- * - We probably need some kind of mutex lock against reads/writes on the shared memory. Solve this problem later.
+ *  • 0 denotes it is not the currently scheduled process
+ *  • 1 denotes it is the currently scheduled process
  * 
  * @param args: process state declared on the heap. Used for inter thread communitcation on the same process.
- * @return Return the final state of the process. Probably useless but what do I know.    
+ * @return Return the final state of the process.    
  */
 void *monitor(void *args);
 
@@ -35,9 +36,12 @@ void *monitor(void *args);
  * The major components of this routine are the turn_lock and cpu_lock semaphores. 
  * 
  * We treat the CPU as a common resource, only one of which is available. This ensures that no two processes can do "effective work" at the same time. 
- * i.e. the worker thread loops of no two processes can run simultaneously.
+ * i.e. the worker thread loops of no two processes can run simultaneously. This is ensured using the cpu_lock semaphore.
+ * - the value of 'cpu_lock' is always either 0 or 1.
+ *  • 0 denotes that the cpu is busy, and in use
+ *  • 1 denotes that the cpu is free to be acquired by a process
  * 
- * Before each iteration of the task begins, it must wait on the turn_lock, and the cpu_lock semaphores. 
+ * Before each iteration of the task begins, it must wait until the value of turn lock is 1, and then wait on the cpu_lock semaphore. 
  * This is to ensure that it is actually the turn of this process, and that no other process is working right now. 
  * At the end of each iteration, it must release the cpu_lock semaphore.
  * 
@@ -47,7 +51,7 @@ void *monitor(void *args);
  * Similary for the Turn Around times.
  * 
  * @param args: process state declared on the heap. Used for inter thread communitcation on the same process.
- * @return Final state of the process. Probably useless but what do I know.   
+ * @return Final state of the process.  
 */
 void *worker0(void *args);
 void *worker1(void *args);

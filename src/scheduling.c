@@ -42,12 +42,6 @@ void *monitor(void *args) {
         usleep(2);  //sleep for 20us
     }
 
-    int cpu_lock_val;
-    sem_getvalue(state->cpu_lock, &cpu_lock_val);
-    if (cpu_lock_val == 0) {
-        sem_post(state->cpu_lock);
-    }
-
     return state;
 }
 
@@ -64,7 +58,7 @@ void *worker0(void *args) {
     int x, cnt = 0;
     long long int sum = 0;
 
-    for (cnt = 0; cnt < state->n;) {
+    for (cnt = 0; cnt < state->n; cnt++) {
         if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
             exit(EXIT_FAILURE);
@@ -82,15 +76,10 @@ void *worker0(void *args) {
             exit(EXIT_FAILURE);
         }
 
-        int batched;
-        for (batched = 0; batched + cnt < state->n && batched < BATCH_SIZE; ++batched) {
-            //  Critical Section Starts
-            x = rand() % NUM + 1;
-            sum += x;
-            // Critical Section Ends
-        }
-
-        cnt += batched;
+        //  Critical Section Starts
+        x = rand() % NUM + 1;
+        sum += x;
+        // Critical Section Ends
 
         // Critical Section Ends
         sem_post(state->cpu_lock);
@@ -128,8 +117,8 @@ void *worker1(void *args) {
         perror(C2_TXT);
         exit(1);
     }
-    int x, cnt = 0;
-    for (cnt = 0; cnt < state->n;) {
+    int x, cnt;
+    for (cnt = 0; cnt < state->n; cnt++) {
         if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
             exit(EXIT_FAILURE);
@@ -149,16 +138,12 @@ void *worker1(void *args) {
         }
 
         //  Critical Section Starts
-        int batched;
-        for (batched = 0; batched + cnt < state->n && batched < BATCH_SIZE; ++batched) {
-            if (fscanf(c2f, "%d", &x) == 0) {
-                break;
-            }
-
-            printf("%d\t", x);
+        if (fscanf(c2f, "%d", &x) == 0) {
+            break;
         }
 
-        cnt += batched;
+        printf("%d\t", x);
+
         // Critical Section Ends
         sem_post(state->cpu_lock);
 
@@ -206,9 +191,9 @@ void *worker2(void *args) {
         perror(C2_TXT);
         exit(1);
     }
-    int x, cnt = 0;
+    int x, cnt;
     long long int sum = 0;
-    for (cnt = 0; cnt < state->n;) {
+    for (cnt = 0; cnt < state->n; cnt++) {
         // Calculate the amount waited for this segment
         if (timespec_get(&st, TIME_UTC) != TIME_UTC) {
             fprintf(stderr, "ERROR: call to timespec_get failed \n");
@@ -228,18 +213,12 @@ void *worker2(void *args) {
             exit(EXIT_FAILURE);
         }
 
-        int batched;
-        for (batched = 0; batched + cnt < state->n && batched < BATCH_SIZE; ++batched) {
-            //  Critical Section Starts
-            if (fscanf(c3f, "%d", &x) == 0) {
-                break;
-            }
-
-            sum += x;
-            // Critical Section Ends
+        //  Critical Section Starts
+        if (fscanf(c3f, "%d", &x) == 0) {
+            break;
         }
 
-        cnt += batched;
+        sum += x;
 
         // Critical Section Ends
         sem_post(state->cpu_lock);

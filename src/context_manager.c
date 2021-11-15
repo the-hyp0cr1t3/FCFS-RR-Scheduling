@@ -7,7 +7,7 @@
 
 #include "constants.h"
 
-// Scheduling Algorithm and Time Quantum can be set ONLY using arg_parse function, and hence can not be tampered with.
+// Scheduling Algorithm and Time Quantum can be set ONLY using argparse function, and hence can not be tampered with.
 // This is a security feature, and prevents accidental modification of these variables.
 // The singleton pattern also prevents the need for any kind of argument drilling, and long chained argument passing.
 static char scheduling_algorithm[8];
@@ -15,11 +15,11 @@ static int time_quantum;
 
 task argparse(int argc, char *argv[]) {
     task ts = {.n1 = (int)(1e6), .n2 = (int)(1e6), .n3 = (int)(1e6)};
+    time_quantum = __INT_MAX__;
 
-    // Parese Arguments
+    // Parse Arguments
     if (argc == 1) {
         strcpy(scheduling_algorithm, "fcfs");
-        time_quantum = __INT_MAX__;
     } else {
         strcpy(scheduling_algorithm, argv[1]);
 
@@ -54,8 +54,7 @@ task argparse(int argc, char *argv[]) {
 
     // Basic Logs
     fprintf(log_file, "Scheduling Algorithm: %s\n", scheduling_algorithm);
-    fprintf(log_file, "Time Quntum: %d\n", time_quantum);
-    fprintf(log_file, "Batch Size: %d\n", BATCH_SIZE);
+    fprintf(log_file, "Time Quantum: %d\n", time_quantum);
 
     fclose(log_file);
 

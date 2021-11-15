@@ -14,13 +14,13 @@ void get_pipe(int fd[2]) {
 }
 
 void single_write(int fd[2], void* buff, int size) {
-    close(fd[PIPE_READ]);  //writing sum to pipe
+    close(fd[PIPE_READ]);
     write(fd[PIPE_WRITE], buff, size);
     close(fd[PIPE_WRITE]);
 }
 
 void single_read(int fd[2], void* buff, int size) {
-    close(fd[PIPE_WRITE]);  //read from pipe1
+    close(fd[PIPE_WRITE]);
     read(fd[PIPE_READ], buff, size);
     close(fd[PIPE_READ]);
 }

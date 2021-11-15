@@ -83,11 +83,11 @@ void serialize_process_return(process_return* rtv) {
     fclose(log_file);
 
     FILE* stats_file = fopen(STATS_FNAME, "a");
-    // scheduling_algo, process_id, n, BATCH_SIZE, time_quantum, start time, wait_iterations, total waiting time, turn around time
+    // scheduling_algo, process_id, n, time_quantum, start time, wait_iterations, total waiting time, turn around time
     fprintf(stats_file,
-            "%s,%d,%d,%d,%d,%ld.%09ld,%d,%09lf,%09lf\n",
+            "%s,%d,%d,%d,%ld.%09ld,%d,%09lf,%09lf\n",
             get_scheduling_algorithm(),
-            rtv->id, rtv->n, BATCH_SIZE, get_time_quantum(),
+            rtv->id, rtv->n, get_time_quantum(),
             rtv->start_time.tv_sec, rtv->start_time.tv_nsec, rtv->wait_segments, wt, rtv->tat);
 
     fclose(stats_file);

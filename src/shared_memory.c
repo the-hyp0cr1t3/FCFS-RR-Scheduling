@@ -11,9 +11,9 @@
 static int get_shared_block(const char *filename, const int size) {
     key_t key;
 
-    // Request a ket
+    // Request a key
     // The key is linked to a filename, so that other programs can access it
-    key = ftok(filename, 0);  // 0 gives the first block on the file ig?
+    key = ftok(filename, 0);  
 
     if (key == IPC_RESULT_ERROR) {
         return IPC_RESULT_ERROR;
