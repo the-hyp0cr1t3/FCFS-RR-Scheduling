@@ -26,5 +26,4 @@ $(LIBDIR)/%.o: $(SRCDIR)/%.c
 clean:
 	rm -rf $(LIBDIR)/* $(BINDIR)/*
 
-rebuild: 
-	clean all
+rebuild: clean all
