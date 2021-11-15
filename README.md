@@ -5,14 +5,7 @@
 To compile code on a linux machine run:
 
 ```sh
-make clean # To clear all output directories
-make # Compiling to object files and binaries
-```
-
-or
-
-```sh
-make rebuild # To clear all output directories and then compile object
+make # To clear all output directories and then compile object
 ```
 ## Execution Instructions
 
