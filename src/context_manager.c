@@ -55,7 +55,6 @@ task argparse(int argc, char *argv[]) {
     // Basic Logs
     fprintf(log_file, "Scheduling Algorithm: %s\n", scheduling_algorithm);
     fprintf(log_file, "Time Quntum: %d\n", time_quantum);
-    fprintf(log_file, "Batch Size: %d\n", BATCH_SIZE);
 
     fclose(log_file);
 
