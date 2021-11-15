@@ -8,7 +8,7 @@
 
 #define IPC_RESULT_ERROR (-1)
 
-static int get_shared_block(char *filename, int size) {
+static int get_shared_block(const char *filename, const int size) {
     key_t key;
 
     // Request a ket
@@ -23,7 +23,7 @@ static int get_shared_block(char *filename, int size) {
     return shmget(key, size, 0644 | IPC_CREAT);
 }
 
-char *attach_memory_block(char *filename, int size) {
+char *attach_memory_block(const char *filename, const int size) {
     int shared_block_id = get_shared_block(filename, size);
     char *result;
 
@@ -41,11 +41,11 @@ char *attach_memory_block(char *filename, int size) {
     return result;
 }
 
-bool detach_memory_block(char *block) {
+bool detach_memory_block(const char *block) {
     return (shmdt(block) != IPC_RESULT_ERROR);
 }
 
-bool destroy_memory_block(char *filename) {
+bool destroy_memory_block(const char *filename) {
     int shared_block_id = get_shared_block(filename, 0);
 
     if (shared_block_id == IPC_RESULT_ERROR) {

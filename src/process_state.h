@@ -7,21 +7,21 @@
 #include <time.h>
 
 typedef struct process_state {
-    int id;                      /** < Process ID */
-    bool done;                   /** < Done status of the task. */
-    int current_scheduled;       /** < Current Scheduled proccess, determined by the scheduling algorithm and copied from the shared memory block */
-    char* shm_current_scheduled; /** < Shared Memory Block returned by shmget */
-    char* shm_done;              /** < Shared Memory Block returned by shmget */
-    char sem_turn_fname[16];     /** < Name to use for the named semaphore, turn */
-    sem_t* cpu_lock;             /** < Semaphore to protect the CPU (as a sparse resource) */
-    sem_t* turn_lock;            /** < Semaphore to determine if it is this process's turn */
-    int n;                       /** < workload of the process */
-    long long int result;        /** < result of the process */
+    int id;                       // Process ID
+    bool done;                    // Done status of the task.
+    int current_scheduled;        // Current Scheduled proccess, determined by the scheduling algorithm and copied from the shared memory block
+    char* shm_current_scheduled;  // Shared Memory Block returned by shmget
+    char* shm_done;               // Shared Memory Block returned by shmget
+    char sem_turn_fname[16];      // Name to use for the named semaphore, turn
+    sem_t* cpu_lock;              // Semaphore to protect the CPU (as a sparse resource)
+    sem_t* turn_lock;             // Semaphore to determine if it is this process's turn
+    int n;                        // workload of the process
 } process_state;
 
 typedef struct process_return {
     int id;
     int n;
+    long long int result;  // result of the process
     struct timespec start_time;
     int wait_segments;
     double* wts;  // waiting time segments

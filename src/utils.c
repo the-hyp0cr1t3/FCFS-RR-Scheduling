@@ -5,7 +5,7 @@
 
 #include "constants.h"
 
-void check_file(char* filename) {
+void check_file(const char* filename) {
     FILE* file = fopen(filename, "w");
     if (file == NULL) {
         fprintf(stderr, "ERROR: File could not be created (%s)\n", filename);

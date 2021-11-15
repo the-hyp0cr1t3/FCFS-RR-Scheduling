@@ -1,11 +1,9 @@
 #include "scheduling.h"
 
-#include <assert.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -15,31 +13,6 @@
 #include "shared_memory.h"
 #include "utils.h"
 
-/**
- * Created ONLY to be used as a thread routine. 
- * The major components of this routine are the 'turn_lock' semaphore (referred to as 'turn'), 'done' status of the task, and the 'current_scheduled' shared memory block.
- * The scheduling algorithm writes the currently scheduled process to 'current_scheduled' shared memory block (shared amongst all processes). 
- * This routine polls the status of this block at regular intervals to determine the process that should be running currently.
- * If the process id matched the currently scheduled process, then the monitor thread signals the 'turn_lock' semaphore.
- * 
- * ___________________                                           ___________________
- * |                 |            ////////////////               |                 |
- * |                 |            /   Currently  /               |                 |
- * |    Scheduler    |  --------> /   Scheduled  /  <---------   |  Child Process  |
- * |                 |            /   Process    /               |                 |
- * |_________________|            ////////////////               |_________________|
- * 
- * Intricacies:
- * - The polling is done at regular time intervals, say t (until the task assigned has finished, indicated by the done variable.)
- *   If t is too short, then the state update latency would be low but CPU usage would spike.
- *   If t is too long, then state update latency would be too high, and might miss the scheduler updates by a large margin.
- * 
- * - The value of the 'turn' semaphore is always either 0 or 1. 
- * - We probably need some kind of mutex lock against reads/writes on the shared memory. Solve this problem later.
- * 
- * @param args: process state declared on the heap. Used for inter thread communitcation on the same process.
- * @return state: return the final state of the process. Probably useless but what do I know.    
- */
 void *monitor(void *args) {
     process_state *state = (process_state *)args;
     int turn_lock_val;
@@ -78,20 +51,6 @@ void *monitor(void *args) {
     return state;
 }
 
-/**
- * Created ONLY to be used as a thread routine.It is a sample routine, and the actual routines must be based on this architecture/model.
- * The major components of this routine are the turn_lock and cpu_lock semaphores. 
- * 
- * We treat the CPU as a common resource, only one of which is available. This ensures that no two processes can do "effective work" at the same time. 
- * i.e. the worker thread loops of no two processes can run simultaneously.
- * 
- * Before each iteration of the task begins, it must wait on the turn_lock, and the cpu_lock semaphores. 
- * This is to ensure that it is actually the turn of this process, and that no other process is working right now. 
- * At the end of each iteration, it must release the cpu_lock semaphore.
- * 
- * @param args: process state declared on the heap. Used for inter thread communitcation on the same process.
- * @return state: return the final state of the process. Probably useless but what do I know.   
-*/
 void *worker0(void *args) {
     process_state *state = (process_state *)args;
 
@@ -147,10 +106,9 @@ void *worker0(void *args) {
 
     // Calculate the turn around time
     rtv->tat = get_time_diff(rtv->start_time, et);
+    rtv->result = sum;
 
-    // Write to the SHM_DONE to inform that the process is over.
     state->done = true;
-    state->result = sum;
     *state->shm_done = true;
 
     return rtv;
@@ -228,6 +186,7 @@ void *worker1(void *args) {
 
     // Calculate the turn around time
     rtv->tat = get_time_diff(rtv->start_time, et);
+    rtv->result = 0;
     state->done = true;
     *state->shm_done = true;
     return rtv;
@@ -303,15 +262,12 @@ void *worker2(void *args) {
 
     // Calculate the turn around time
     rtv->tat = get_time_diff(rtv->start_time, et);
+    rtv->result = sum;
     state->done = true;
-    state->result = sum;
     *state->shm_done = true;
     return rtv;
 }
 
-/**
- * Can't rant. This is too straightforward.
- */
 long long int child_method(int process_id, sem_t *cpu_lock, int num) {  // Move cpu_lock to be a process local variable?
     /* Initialized on the heap, to ensure that can be shared between threads. */
     process_state *state = process_state_init(process_id, cpu_lock, num);
@@ -329,27 +285,12 @@ long long int child_method(int process_id, sem_t *cpu_lock, int num) {  // Move 
     pthread_join(w_id, (void **)&rtv);
     pthread_join(m_id, NULL);
 
-    char buff[100];
-    strftime(buff, sizeof buff, "%D %T", gmtime(&rtv->start_time.tv_sec));
-
-    double wt = 0;
-    for (int i = 0; i < rtv->wait_segments; ++i) {
-        wt += rtv->wts[i];
-    }
-
-    FILE *log_file = fopen(LOG_FNAME, "a");
-    fprintf(log_file, "PROCESS: %d\n", rtv->id);
-    fprintf(log_file, "[%d] Start Time: %s.%09ld UTC\n", rtv->id, buff, rtv->start_time.tv_nsec);
-    fprintf(log_file, "[%d] Number of wait segments: %d\n", rtv->id, rtv->wait_segments);
-    fprintf(log_file, "[%d] Total Waiting Time for this Process: %09lf\n", rtv->id, wt);
-    fprintf(log_file, "[%d] Turn-Around Time: %09lf\n", rtv->id, rtv->tat);
-    fclose(log_file);
-
     serialize_process_return(rtv);
 
-    long long int res = state->result;
+    long long int res = rtv->result;
 
     process_state_destroy(state);
+    process_return_destroy(rtv);
 
     return res;
 }
@@ -380,12 +321,12 @@ void rr_scheduler(char *shm_current_scheduled_block, char *shm_done[]) {
         printf("\n[%lf] scheduled: %d\n", fmted_time, current_scheduled);
         fflush(stdout);
 
-        usleep(get_time_quantum());  // sleep for time quantum
+        usleep(get_time_quantum());  // sleep for time quantum before scheduling the next proccess
     }
 }
 
 void fcfs_scheduler(char *shm_current_scheduled_block, char *shm_done[]) {
-    // Iterate over each process, schedule them one by one.
+    // Iterate over each process, schedule next only after the current has finished execution.
     // Assumption: Ci arrived before Cj if i < j
     struct timespec current_time;
     for (int i = 0; i < 3; i++) {
@@ -399,7 +340,7 @@ void fcfs_scheduler(char *shm_current_scheduled_block, char *shm_done[]) {
         double fmted_time = current_time.tv_sec + (current_time.tv_nsec / 1e9);
         printf("\n[%lf] scheduled: %d\n", fmted_time, *shm_current_scheduled_block);
         fflush(stdout);
-        
+
         while (*shm_done[i] == 0) {
             usleep(2000);  // check every 2ms if the process is completed or not
         }
