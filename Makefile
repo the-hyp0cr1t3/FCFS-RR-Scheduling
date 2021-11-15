@@ -16,7 +16,7 @@ OBJECTS := $(SOURCES:.c=.o)
 NAMES := $(notdir $(basename $(wildcard $(SRCDIR)/*.c)))
 OBJECTS :=$(patsubst %,$(LIBDIR)/%.o,$(NAMES))
 
-build: $(DIRS) clean all
+build: clean $(DIRS) all
 
 all: $(OBJECTS)
 	$(CC) -o $(BINDIR)/main $+ $(CFLAGS) $(LIBS)
@@ -26,7 +26,7 @@ $(LIBDIR)/%.o: $(SRCDIR)/%.c
 
 
 clean: 
-	rm -rf $(LIBDIR)/* $(BINDIR)/*
+	rm -rf $(LIBDIR) $(BINDIR) *.shm stats.csv exec.log
 
 $(DIRS):
 	mkdir $@
