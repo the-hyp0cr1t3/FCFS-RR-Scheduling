@@ -29,11 +29,13 @@ bin/main rr tq n1 n2 n3 # Runs with time quantum tq and given workloads
 ```
 
 ### Contributors
-* Nandan H R        2019A7PS0164H
-* Jeevan Jyot Singh 2019A7PS0172H
-* Ankita Behera     2019A7PS0075H
-* Anuradha Pandey   2019A7PS0265H
-* Omkar Pitale      2019A7PS0083H
-* Aditya Chopra     2019A7PS0178H
-* Durba Satpathi    2019A7PS0972H
-* Hriday G          2019A7PS1212H
+|Name|ID|
+|-|-|
+| Nandan H R        | 2019A7PS0164H |
+| Jeevan Jyot Singh | 2019A7PS0172H |
+| Ankita Behera     | 2019A7PS0075H |
+| Anuradha Pandey   | 2019A7PS0265H |
+| Omkar Pitale      | 2019A7PS0083H |
+| Aditya Chopra     | 2019A7PS0178H |
+| Durba Satpathi    | 2019A7PS0972H |
+| Hriday G          | 2019A7PS1212H |
