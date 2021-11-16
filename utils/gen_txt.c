@@ -16,9 +16,6 @@ void make_txt(char *fname, int n) {
 }
  
 int main(int argc, char* argv[]) {
-    // First Argument to Executable = file size
-    // Second Argument = File Name
- 
     srand(42);
  
     int n2, n3;
