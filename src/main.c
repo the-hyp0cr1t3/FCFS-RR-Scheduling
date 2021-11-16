@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     child[0] = fork();
 
     if (!child[0]) {  // Child Process 1 -- C1
-        long long int* sum = malloc(sizeof(int));
+        long long int* sum = malloc(sizeof(long long int));
         *sum = child_method(0, cpu_lock, ts.n1);
         single_write(fd1, sum, sizeof(long long int));
     } else {
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
             child[2] = fork();
 
             if (!child[2]) {  // Child Process 3 -- C3
-                long long int* sum = malloc(sizeof(int));
+                long long int* sum = malloc(sizeof(long long int));
                 *sum = child_method(2, cpu_lock, ts.n3);
                 single_write(fd3, sum, sizeof(long long int));
             } else {
