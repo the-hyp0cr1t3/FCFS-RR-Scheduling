@@ -1,4 +1,4 @@
-# OS Assignment
+# FCFS and RR Scheduling
 Emulation and analysis of two process scheduling algorithms (FCFS and RR) for different workloads.
 
 ## Execution Instructions
