@@ -1,13 +1,20 @@
-#include "process_state.h"
-
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "utils.h"
 #include "constants.h"
-#include "context_manager.h"
 #include "shared_memory.h"
+#include "process_info.h"
+
+const char *get_scheduling_algorithm() {
+    return scheduling_algorithm == FCFS? "fcfs" : "rr";
+}
+
+int get_time_quantum() {
+    return time_quantum;
+}
 
 process_state* process_state_init(int process_id, sem_t* cpu_lock, int num) {
     process_state* state = malloc(sizeof(process_state)); /* Initialized on the heap, to ensure that can be shared between threads. */
@@ -53,7 +60,7 @@ process_return* process_return_init(int process_id) {
     process_return* rtv = malloc(sizeof(process_return));
 
     rtv->id = process_id;
-    timespec_get(&rtv->start_time, TIME_UTC);
+    rtv->start_time = get_time();
     rtv->wait_segments = 0;
     rtv->wts = malloc((int)2e6 * sizeof(double));
 

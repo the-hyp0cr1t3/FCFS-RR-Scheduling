@@ -1,5 +1,5 @@
-#ifndef PROCESS_STATE
-#define PROCESS_STATE
+#ifndef PROCESS_INFO
+#define PROCESS_INFO
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -35,5 +35,14 @@ process_return* process_return_init(int process_id);
 void process_return_destroy(process_return* rtv);
 
 void serialize_process_return(process_return* rtv);
+
+// Returns the scheduling algorithm set after parsing.
+// Return value is undefined if called before argparse.
+const char *get_scheduling_algorithm();
+
+// Returns the time quantum set after parsing.
+// Return value is undefined if called before argparse.
+int get_time_quantum();
+
 
 #endif
