@@ -68,15 +68,12 @@ When the worker thread has finished its task, the process writes to shared memor
 In the case of RR, if a full time quantum elapses and the process has not yet finished executing i.e. the shared memory value for currently scheduled process changes, the monitor thread which is polling this value decrements the value of the *turn_lock*. As a result, the worker thread is made to once again busy wait on the *turn_lock*, pausing execution.
 
 
-### Contributors
-
-| Name              |
-| ----------------- |
-| Nandan H R        |
-| Jeevan Jyot Singh |
-| Ankita Behera     |
-| Anuradha Pandey   |
-| Omkar Pitale      |
-| Aditya Chopra     |
-| Durba Satpathi    |
-| Hriday G          |
+#### Contributors
+* Nandan H R       
+* Jeevan Jyot Singh
+* Ankita Behera    
+* Anuradha Pandey  
+* Omkar Pitale     
+* Aditya Chopra    
+* Durba Satpathi   
+* Hriday G         
