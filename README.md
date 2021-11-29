@@ -3,13 +3,7 @@ Emulation and analysis of two process scheduling algorithms (FCFS and RR) for di
 
 ## Execution Instructions
 
-**Pre-requisites:**
-- Linux environment
-- Text files c2.txt and c3.txt. To generate a file on demand, use `utils/gen_txt.c`
-    ```sh
-    gcc utils/gen_txt.c -o gen_txt  # Run from root directory
-    ./gen_txt n2 n3 # Execute the binary with required values of n2 and n3
-    ```
+Requires a Linux environment.
 
 **Compilation:**
 ```sh

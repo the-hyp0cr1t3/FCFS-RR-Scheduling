@@ -19,7 +19,9 @@ void make_txt(char *fname, int n) {
  
     fclose(file);
 }
- 
+
+// Called by make to if c2.txt and c3.txt do not exist
+// Can be separately run with desired values of n2 n3 if required
 int main(int argc, char* argv[]) {
     srand(time(NULL));
     int n2, n3;

@@ -11,8 +11,8 @@
 #define PIPE_WRITE  1
 
 #define DEFAULT_TIME_QUANTUM   1000       // default time quantum 10^3 us = 1ms
-#define MAX_VALUE              1000000    // generate values in the range [1, 1e6]
-#define DEFAULT_N              1000000    // default workload size 1e6
+#define MAX_VALUE              1000000    // generate values in the range [1, 10^6]
+#define DEFAULT_N              1000       // default workload size 10^3
 
 #define MONITOR_POLL_FREQUENCY      2     // frequency (in microseconds) at which monitor thread polls the currently scheduled shared memory block
 #define FCFS_MASTER_POLL_FREQUENCY  2     // frequency (in microseconds) at which master process polls the done shared memory block
