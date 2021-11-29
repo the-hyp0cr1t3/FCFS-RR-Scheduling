@@ -14,20 +14,20 @@ make # To clear all output directories and then compile object
 1. To run with default arguments run:
 
 ```sh
-./bin/main # Runs fcfs scheduling algorithm with default values for workloads n1 = n2 = n3 = 1e6
+./bin/main # Runs fcfs scheduling algorithm with default values for workloads n1 = n2 = n3 = 1000
 ```
 
 2. To run with First Come First Serve (FCFS) scheduling algorithm:
 ```sh
-./bin/main fcfs # Runs with default values for workloads n1 = n2 = n3 = 1e6
+./bin/main fcfs # Runs with default values for workloads n1 = n2 = n3 = 1000
 ./bin/main fcfs n1 n2 n3 # Runs with given values of workloads
 ```
 
 3. To run with Round Robin (RR) scheduling algorithm:
 ```sh
-./bin/main rr # Runs with default values for workloads n1 = n2 = n3 = 1e6 and time quantum tq = 1e3 us (micro-seconds)
-./bin/main rr tq # Runs with time quantum tq (us) and default values of workloads n1 = n2 = n3 = 1e6 
-./bin/main rr n1 n2 n3 # Runs with default time quantum tq = 1e3 us (micro-seconds) and given workloads
+./bin/main rr # Runs with default values for workloads n1 = n2 = n3 = 1000 and time quantum tq = 1000 us (micro-seconds)
+./bin/main rr tq # Runs with time quantum tq (us) and default values of workloads n1 = n2 = n3 = 1000 
+./bin/main rr n1 n2 n3 # Runs with default time quantum tq = 1000 us (micro-seconds) and given workloads
 ./bin/main rr tq n1 n2 n3 # Runs with time quantum tq (us) and given workloads
 ```
 
