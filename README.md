@@ -7,7 +7,7 @@ Requires a Linux environment.
 
 **Compilation:**
 ```sh
-make # To clear all output directories and then compile object
+make # To run the makefile and create the executable ./bin/main
 ```
 
 **Execution:**
