@@ -1,37 +1,40 @@
-CC=gcc
+# -*- MakeFile -*-
 
-CFLAGS=-O3 -w
-LIBS=-pthread
+SRC_DIR = src
+OBJ_DIR = lib
+BIN_DIR = bin
 
-BIN=main
+EXE := $(BIN_DIR)/main
+SRC := $(wildcard $(SRC_DIR)/*.c)
+OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-SRCDIR=src
-BINDIR=bin
-LIBDIR=lib
+CC       = gcc
+CPPFLAGS = -MMD -MP
+CFLAGS 	 = -O3 -w
+LDLIBS   = -pthread
 
-DIRS=$(BINDIR) $(LIBDIR)
-SOURCES := $(wildcard *.c)
-OBJECTS := $(SOURCES:.c=.o)
+INPT_TXTS = c2.txt c3.txt
 
-NAMES := $(notdir $(basename $(wildcard $(SRCDIR)/*.c)))
-OBJECTS :=$(patsubst %,$(LIBDIR)/%.o,$(NAMES))
+.PHONY: all clean
 
-INPUT_FILES=c2.txt c3.txt
 
-build: $(INPUT_FILES) clean $(DIRS) all
+all: $(INPT_TXTS) $(EXE)
 
-all: $(OBJECTS)
-	$(CC) -o $(BINDIR)/main $+ $(CFLAGS) $(LIBS)
+$(EXE): $(OBJ) | $(BIN_DIR)
+	$(CC) $^ $(LDLIBS) -o $@
 
-$(LIBDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) -c $^ -o $@ $(CFLAGS) $(LIBS)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(BIN_DIR) $(OBJ_DIR):
+	mkdir -p $@
+
+$(INPT_TXTS):
+	gcc ./utils/gen_txt.c -o ./gen_txt
+	./gen_txt
+	@rm ./gen_txt
 
 clean:
-	rm -rf $(LIBDIR) $(BINDIR) *.shm stats.csv exec.log gen_txt
+	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR) $(INPT_TXTS) *.shm stats.csv exec.log gen_txt
 
-$(DIRS):
-	mkdir $@
-
-$(INPUT_FILES):
-	gcc utils/gen_txt.c -o gen_txt
-	./gen_txt
+-include $(OBJ:.o=.d)
